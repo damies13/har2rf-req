@@ -35,9 +35,9 @@ def load_har(harfile):
 	workingdata["har"] = har
 	return har
 
-def save_robot():
+def save_robot(pathout):
 	# print(outdata)
-	ofname = workingdata["testcase"]+".robot"
+	ofname = os.path.join(pathout, workingdata["testcase"]+".robot")
 	print(ofname)
 	if os.path.exists(ofname):
 		os.remove(ofname)
@@ -605,8 +605,10 @@ def process_har(harfile):
 
 init_outdata()
 pathin = os.path.abspath(sys.argv[1])
+pathout = os.path.dirname(pathin)
 if os.path.exists(pathin):
 	if os.path.isdir(pathin):
+		pathout = pathin
 		tc = os.path.split(pathin)[-1]
 		print("tc:", tc)
 		add_test_case(tc)
@@ -631,7 +633,7 @@ if os.path.exists(pathin):
 		add_test_case(tc)
 		process_har(pathin)
 
-	save_robot()
+	save_robot(pathout)
 
 else:
 	import glob
@@ -643,4 +645,4 @@ else:
 			print("tc:", tc)
 			add_test_case(tc)
 			process_har(item)
-		save_robot()
+		save_robot(pathout)
