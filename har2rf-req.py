@@ -383,9 +383,13 @@ def process_entry(entry):
 				parrin = patharr[1].split("&")
 				parrout = []
 				for p in parrin:
-					key, value = p.split("=", 1)
-					newvalue = find_variable(key, value)
-					parrout.append("=".join([key, newvalue]))
+					if "=" in p:
+						key, value = p.split("=", 1)
+						newvalue = find_variable(key, value)
+						parrout.append("=".join([key, newvalue]))
+					else:
+						newvalue = find_variable("NoKey", p)
+						parrout.append(newvalue)
 				
 				params = "	".join(parrout)
 
