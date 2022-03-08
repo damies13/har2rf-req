@@ -78,7 +78,7 @@ def find_variable(key, value):
 	kwname = workingdata["keyword"]
 
 	if len(value.strip())<1:
-		return newvalue
+		return "${EMPTY}"
 	
 	# print("find_variable	key:", key, "	value:", value)
 	
