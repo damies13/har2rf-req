@@ -348,7 +348,8 @@ def process_entry(entry):
 		updatesess = 0
 		for h in entry["request"]["headers"]:
 			print("h:", h["name"], h["value"])
-			if h["name"] != "Cookie" and h["name"][0] != ":":
+			specialh = ["Cookie", "accept-encoding"]
+			if h["name"] not in specialh and h["name"][0] != ":":
 				# hdrs[h["name"]] = h["value"]
 				value = find_variable(h["name"], h["value"])
 				hdrs += "	" + h["name"] + "=" + value
