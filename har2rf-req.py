@@ -5,6 +5,8 @@ from datetime import datetime
 import dateutil.parser
 import re
 
+import urllib.parse
+
 outdata = {}
 workingdata = {}
 
@@ -75,6 +77,7 @@ def find_variable(key, value):
 	global outdata
 	global workingdata
 	newvalue = value
+	decvalue = decode_value(value)
 	kwname = workingdata["keyword"]
 
 	if len(value.strip())<1:
@@ -111,7 +114,12 @@ def find_variable(key, value):
 	if "paramvalues" not in workingdata:
 		workingdata["paramvalues"] = {}
 			
-			
+
+	if decvalue in workingdata["paramvalues"]:
+		if workingdata["paramvalues"][decvalue] == "${"+key+"}":
+			newvalue = workingdata["paramvalues"][decvalue]
+			return newvalue
+		
 	# print("find_variable	paramvalues")
 	# print("value:", value, workingdata["paramvalues"].keys())
 	if newvalue == value and value in workingdata["paramvalues"]:
@@ -286,6 +294,16 @@ def find_variable(key, value):
 
 	# print("find_variable	Last resort")
 	# Last resort if it didn't exist anywhere, so create it as a hard coded variable
+	if newvalue != decvalue:
+		newvalue = decvalue
+		newkey = saveparam(key, decvalue)
+		line = "${"+newkey+"}		"+decvalue
+		outdata["*** Variables ***"].append(line)
+
+		newvalue = "${"+newkey+"}"
+		# print("last resort", newkey, newvalue)
+		return newvalue
+
 	if newvalue == value:
 		# print("last resort", key, value)
 
@@ -301,7 +319,14 @@ def find_variable(key, value):
 					
 	return newvalue
 
+def decode_value(value):
+	newvalue = value
+	print("decode_value value:", value)
+	if '%' in newvalue:
+		newvalue = urllib.parse.unquote_plus(newvalue)
 
+	print("decode_value newvalue:", newvalue)
+	return newvalue
 
 def process_entry(entry):
 	global outdata
@@ -546,7 +571,7 @@ def add_session():
 	workingdata["baseurl"] = baseurl
 	workingdata["session"] = sessionname
 	# outdata["*** Settings ***"].append("Suite Setup           Create Session    " + sessionname + " 	" +	baseurl)
-	outdata["*** Test Cases ***"][tcname].insert(0, "Create Session    " + sessionname + " 	" +	baseurl)
+	outdata["*** Test Cases ***"][tcname].insert(0, "Create Session    " + sessionname + " 	" +	baseurl + " 	disable_warnings=1")
 
 def iso2sec(isotime):
 	reqtime = dateutil.parser.isoparse(isotime)
