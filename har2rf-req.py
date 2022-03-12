@@ -163,80 +163,63 @@ def find_variable(key, value):
 					newvalue = "${"+newkey+"}"
 					return newvalue
 
+				searchstrings = []
+				searchstrings.append(value)
+				if value != decvalue:
+					searchstrings.append(decvalue)
+				htmlx = htmlx_encode(decvalue)
+				if htmlx != decvalue:
+					searchstrings.append(htmlx)
+				htmlx = htmlX_encode(decvalue)
+				if htmlx != decvalue:
+					searchstrings.append(htmlx)
+				urlenc = urlencode_value(decvalue)
+				if urlenc != decvalue:
+					searchstrings.append(urlenc)
 
-				# 	Log    ${resp_0.headers}
-				# Log    ${resp_0.headers['location']}
-				if newvalue == value and value in h["value"]:
-					print("found value (", value, ") within header (", h["name"], ") and value (", h["value"], ") for ", e["request"]["url"])
-					searchval = value
-					start=0
-					kpos = h["value"].find(key, start)
-					vpos = h["value"].find(searchval, start)
-					lbound = ""
-					if kpos>0 and kpos<vpos:
-						lbound = h["value"][kpos:vpos]
-					if vpos>10:
-						lbound = h["value"][vpos-10:vpos]
-					if vpos>0 and vpos<10:
-						lbound = h["value"][:vpos]
 
-					print("kpos:", kpos, "	vpos:", vpos, "	lbound:", lbound)
-					print("val and right:", h["value"][vpos:])
-					if (vpos+len(searchval)) == len(h["value"]) and len(lbound)>0:
-						# no need to find rbound
-						newkey = saveparam(key, value)
+				for searchstring in searchstrings:
+					if newvalue == value and searchstring in h["value"]:
+						lbound, rbound = find_in_string(key, searchstring, h["value"])
+						print("lbound:", lbound, "	rbound:", rbound)
 
-						resp = e["entrycount"]+1
-						ekwname = e["kwname"]
-						estep = find_estep(resp, ekwname)
+						if len(lbound)>0 and len(rbound)==0:
+							# no need to find rbound
+							newkey = saveparam(key, searchstring)
 
-						line = "${"+newkey+"}=		Fetch From Right		${resp_" + str(resp) + ".headers[\"" + h["name"] + "\"]}		" + lbound
-						outdata["*** Keywords ***"][ekwname].insert(estep, line)
+							resp = e["entrycount"]+1
+							ekwname = e["kwname"]
+							estep = find_estep(resp, ekwname)
 
-						estep += 1
+							line = "${"+newkey+"}=		Fetch From Right		${resp_" + str(resp) + ".headers[\"" + h["name"] + "\"]}		" + lbound
+							outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
-						line = "Set Global Variable		${"+newkey+"}	${"+newkey+"}"
-						outdata["*** Keywords ***"][ekwname].insert(estep, line)
+							estep += 1
 
-						newvalue = "${"+newkey+"}"
-						return newvalue
+							line = "Set Global Variable		${"+newkey+"}	${"+newkey+"}"
+							outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
-					# re sap-contextid=(.*)
+							newvalue = "${"+newkey+"}"
+							return newvalue
 
-				if newvalue == value and decvalue in h["value"]:
-					print("found value (", decvalue, ") within header (", h["name"], ") and value (", h["value"], ") for ", e["request"]["url"])
-					searchval = decvalue
-					start=0
-					kpos = h["value"].find(key, start)
-					vpos = h["value"].find(searchval, start)
-					lbound = ""
-					if kpos>0 and kpos<vpos:
-						lbound = h["value"][kpos:vpos]
-					if vpos>10:
-						lbound = h["value"][vpos-10:vpos]
-					if vpos>0 and vpos<10:
-						lbound = h["value"][:vpos]
+						if len(lbound)>0 and len(rbound)>0:
+							newkey = saveparam(key, searchstring)
 
-					print("kpos:", kpos, "	vpos:", vpos, "	lbound:", lbound)
-					print("val and right:", h["value"][vpos:])
-					if (vpos+len(searchval)) == len(h["value"]) and len(lbound)>0:
-						# no need to find rbound
-						newkey = saveparam(key, value)
+							resp = e["entrycount"]+1
+							ekwname = e["kwname"]
+							estep = find_estep(resp, ekwname)
 
-						resp = e["entrycount"]+1
-						ekwname = e["kwname"]
-						estep = find_estep(resp, ekwname)
+							line = "${"+newkey+"}=		Get Substring LRB		${resp_" + str(resp) + ".headers[\"" + h["name"] + "\"]}		"+lbound+"		"+rbound
+							outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
-						line = "${"+newkey+"}=		Fetch From Right		${resp_" + str(resp) + ".headers[\"" + h["name"] + "\"]}		" + lbound
-						outdata["*** Keywords ***"][ekwname].insert(estep, line)
+							estep += 1
 
-						estep += 1
+							line = "Set Global Variable		${"+newkey+"}	${"+newkey+"}"
+							outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
-						line = "Set Global Variable		${"+newkey+"}	${"+newkey+"}"
-						outdata["*** Keywords ***"][ekwname].insert(estep, line)
+							newvalue = "${"+newkey+"}"
+							return newvalue
 
-						newvalue = "${"+newkey+"}"
-						return newvalue
 
 
 
@@ -756,6 +739,46 @@ def find_variable(key, value):
 
 	return newvalue
 
+def find_in_string(key, searchval, instr):
+	print("find_in_string key:", key, "	searchval:", searchval, "	instr:", instr)
+
+	start = 0
+	kpos = instr.find(key, start)
+	if kpos>0:
+		start = kpos + len(key)
+	vpos = instr.find(searchval, start)
+	lbound = ""
+	rbound = ""
+	print("kpos:", kpos, "	vpos:", vpos)
+	if kpos<0 and len(searchval)<10:
+		# probability of returning an unrelated value match is too high
+		return (lbound, rbound)
+
+	if kpos>0 and kpos<vpos:
+		lbound = instr[kpos:vpos]
+	if len(lbound)==0 and vpos>10:
+		lbound = instr[vpos-10:vpos]
+	if len(lbound)==0 and vpos>0 and vpos<10:
+		lbound = instr[:vpos]
+
+	print("lbound:", lbound)
+	vepos = vpos+len(searchval)
+	if vepos == len(instr) and len(lbound)>0:
+		# no need to find rbound
+		return (lbound, rbound)
+
+	rlen = len(instr) - vepos
+	print("rlen:", rlen, "	and right:", instr[vepos:])
+	if rlen < 11:
+		rbound = instr[vepos:]
+
+	if rlen > 10:
+		rbound = instr[vepos:vepos+10]
+
+	print("rbound:", rbound)
+	return (lbound, rbound)
+
+
 def htmlX_encode(s):
 	htmlCodes = (
 		('&', '&amp;'),
@@ -781,6 +804,16 @@ def htmlx_encode(s):
 	for code in htmlCodes:
 		s = s.replace(code[0], code[1])
 	return s
+
+def urlencode_value(value):
+	newvalue = value
+	if isinstance(value, str):
+		print("urlencode_value value:", value)
+		if '%' in newvalue:
+			newvalue = urllib.parse.encode(newvalue)
+
+		print("urlencode_value newvalue:", newvalue)
+	return newvalue
 
 def decode_value(value):
 	newvalue = value
