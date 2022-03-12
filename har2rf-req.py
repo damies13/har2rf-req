@@ -142,7 +142,10 @@ def find_variable(key, value):
 	if newvalue == value and "history" in workingdata:
 		# print("Searching History")
 		for e in workingdata["history"]:
-			# print("e:", e)
+
+			resp = e["entrycount"]+1
+			ekwname = e["kwname"]
+			estep = find_estep(resp, ekwname)
 
 			# check headers
 			for h in e["response"]["headers"]:
@@ -151,12 +154,7 @@ def find_variable(key, value):
 
 					newkey = saveparam(key, value)
 
-
-					resp = e["entrycount"]+1
 					line = "Set Global Variable		${"+newkey+"}	${resp_"+str(resp)+".headers[\""+key+"\"]}"
-					ekwname = e["kwname"]
-
-					estep = find_estep(resp, ekwname)
 
 					outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
@@ -187,10 +185,6 @@ def find_variable(key, value):
 							# no need to find rbound
 							newkey = saveparam(key, searchstring)
 
-							resp = e["entrycount"]+1
-							ekwname = e["kwname"]
-							estep = find_estep(resp, ekwname)
-
 							line = "${"+newkey+"}=		Fetch From Right		${resp_" + str(resp) + ".headers[\"" + h["name"] + "\"]}		" + lbound
 							outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
@@ -204,10 +198,6 @@ def find_variable(key, value):
 
 						if len(lbound)>0 and len(rbound)>0:
 							newkey = saveparam(key, searchstring)
-
-							resp = e["entrycount"]+1
-							ekwname = e["kwname"]
-							estep = find_estep(resp, ekwname)
 
 							line = "${"+newkey+"}=		Get Substring LRB		${resp_" + str(resp) + ".headers[\"" + h["name"] + "\"]}		"+lbound+"		"+rbound
 							outdata["*** Keywords ***"][ekwname].insert(estep, line)
@@ -230,11 +220,8 @@ def find_variable(key, value):
 
 					newkey = saveparam(key, value)
 
-					resp = e["entrycount"]+1
 					line = "Set Global Variable		${"+newkey+"}	${resp_"+str(resp)+".cookies[\""+key+"\"]}"
-					ekwname = e["kwname"]
 
-					estep = find_estep(resp, ekwname)
 					outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
 					newvalue = "${"+newkey+"}"
@@ -262,8 +249,6 @@ def find_variable(key, value):
 								# print(e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
 								print("found key (",key,") in excerpt:", "|{}|".format(excerpt))
 
-								ekwname = e["kwname"]
-
 								kpos = excerpt.find(key)
 								vpos = excerpt.find(value, kpos)
 								if vpos > kpos:
@@ -288,7 +273,6 @@ def find_variable(key, value):
 									suffix = suffixarr[0].strip()
 									print("suffix: |{}|".format(suffix))
 
-									resp = e["entrycount"]+1
 
 									# line = "${left}= 	Fetch From Right 	${resp_"+str(resp)+".text} 	"+prefix
 									# outdata["*** Keywords ***"][ekwname].insert(e["step"], line)
@@ -297,8 +281,6 @@ def find_variable(key, value):
 									# line = "${"+key+"}= 	Fetch From Left 	${left} 	"+suffix
 									# outdata["*** Keywords ***"][ekwname].insert(e["step"]+1, line)
 									# # print(line)
-
-									estep = find_estep(resp, ekwname)
 
 									newkey = saveparam(key, value)
 
