@@ -890,7 +890,7 @@ def process_entry(entry):
 				argdata += "	" + "params=${"+dname+"}"
 
 			resp = "resp_{}".format(ec)
-			line = "${"+resp+"}=		GET On Session		" + workingdata["session"] + "		" + path + argdata
+			line = "${"+resp+"}=		GET On Session		" + workingdata["session"] + "		url=" + path + argdata
 			outdata["*** Keywords ***"][kwname].append(line)
 
 			# line = "Log 	${"+resp+".text}"
@@ -958,7 +958,7 @@ def process_entry(entry):
 
 
 		resp = "resp_{}".format(ec)
-		line = "${"+resp+"}=		POST On Session		" + workingdata["session"] + "		" + path + argdata
+		line = "${"+resp+"}=		POST On Session		" + workingdata["session"] + "		url=" + path + argdata
 		outdata["*** Keywords ***"][kwname].append(line)
 		# line = "Log 	${"+resp+".text}"
 		# outdata["*** Keywords ***"][kwname].append(line)
