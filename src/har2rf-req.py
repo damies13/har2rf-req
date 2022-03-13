@@ -10,6 +10,7 @@ import html
 
 outdata = {}
 workingdata = {}
+debugkeys = ["sap-system-login", "so"]
 
 def init_outdata():
 	print("__init__")
@@ -179,7 +180,8 @@ def find_variable(key, value):
 				for searchstring in searchstrings:
 					if newvalue == value and searchstring in h["value"]:
 						lbound, rbound = find_in_string(key, searchstring, h["value"])
-						print("lbound:", lbound, "	rbound:", rbound)
+						if len(lbound)>0:
+							print("lbound:", lbound, "	rbound:", rbound)
 
 						if len(lbound)>0 and len(rbound)==0:
 							# no need to find rbound
@@ -209,9 +211,6 @@ def find_variable(key, value):
 
 							newvalue = "${"+newkey+"}"
 							return newvalue
-
-
-
 
 			# check Cookies
 			for c in e["response"]["cookies"]:
@@ -250,10 +249,11 @@ def find_variable(key, value):
 					searchstring = searchtup[1]
 					for line in lines:
 						if newvalue == value and searchstring in line:
-							print("found value (",searchstring,") in body for ", e["request"]["url"])
 
 							lbound, rbound = find_in_string(key, searchstring, line)
-							print("lbound:", lbound, "	rbound:", rbound)
+							if len(lbound)>0:
+								print("found value (",searchstring,") in body for ", e["request"]["url"])
+								print("lbound:", lbound, "	rbound:", rbound)
 
 							newkey = ""
 
@@ -326,7 +326,11 @@ def find_variable(key, value):
 	return newvalue
 
 def find_in_string(key, searchval, instr):
-	print("find_in_string key:", key, "	searchval:", searchval, "	instr:", instr)
+	if key in debugkeys:
+		if len(instr)<100:
+			print("find_in_string key:", key, "	searchval:", searchval, "	instr:", instr)
+		else:
+			print("find_in_string key:", key, "	searchval:", searchval)
 
 	blen = 10
 	start = 0
@@ -336,7 +340,8 @@ def find_in_string(key, searchval, instr):
 	vpos = instr.find(searchval, start)
 	lbound = ""
 	rbound = ""
-	print("kpos:", kpos, "	vpos:", vpos)
+	if key in debugkeys:
+		print("kpos:", kpos, "	vpos:", vpos)
 	if kpos<0 and len(searchval)<blen/2:
 		# probability of returning an unrelated value match is too high
 		return (lbound, rbound)
@@ -363,14 +368,19 @@ def find_in_string(key, searchval, instr):
 		lmin = lbound.find('\n', 0)
 		lbound = lbound[lmin:]
 
-	print("lbound:", lbound)
+	if key in debugkeys:
+		print("lbound:", lbound)
 	vepos = vpos+len(searchval)
 	if vepos == len(instr) and len(lbound)>0:
 		# no need to find rbound
 		return (lbound, rbound)
 
 	rlen = len(instr) - vepos
-	print("rlen:", rlen, "	and right:", instr[vepos:])
+	if key in debugkeys:
+		if rlen<100:
+			print("rlen:", rlen, "	and right:", instr[vepos:])
+		else:
+			print("rlen:", rlen)
 	if rlen < blen+1:
 		rbound = instr[vepos:]
 
@@ -388,7 +398,8 @@ def find_in_string(key, searchval, instr):
 	# check we got the right value?
 	match = substring_LRB(instr, lbound, rbound)
 	if check_match(searchval, match):
-		print("rbound:", rbound)
+		if key in debugkeys:
+			print("rbound:", rbound)
 		return (lbound, rbound)
 
 	# we didn't get the expected match
@@ -423,7 +434,8 @@ def find_in_string(key, searchval, instr):
 
 		match = substring_LRB(instr, lbound, rbound)
 		if check_match(searchval, match):
-			print("rbound:", rbound)
+			if key in debugkeys:
+				print("after check_match lbound:", lbound, "	rbound:", rbound)
 			return (lbound, rbound)
 
 	return ("", "")
@@ -475,21 +487,21 @@ def htmlx_encode(s):
 def urlencode_value(value):
 	newvalue = value
 	if isinstance(value, str):
-		print("urlencode_value value:", value)
+		# print("urlencode_value value:", value)
 		if '%' in newvalue:
 			newvalue = urllib.parse.encode(newvalue)
 
-		print("urlencode_value newvalue:", newvalue)
+		# print("urlencode_value newvalue:", newvalue)
 	return newvalue
 
 def decode_value(value):
 	newvalue = value
 	if isinstance(value, str):
-		print("decode_value value:", value)
+		# print("decode_value value:", value)
 		if '%' in newvalue:
 			newvalue = urllib.parse.unquote_plus(newvalue)
 
-		print("decode_value newvalue:", newvalue)
+		# print("decode_value newvalue:", newvalue)
 	return newvalue
 
 def process_entry(entry):
@@ -497,6 +509,7 @@ def process_entry(entry):
 	global workingdata
 	print(entry["request"]["method"], entry["request"]["url"])
 
+	newvalue = ""
 	kwname = workingdata["keyword"]
 
 	# add extra info to entry
@@ -670,6 +683,8 @@ def process_entry(entry):
 		workingdata["history"] = []
 	workingdata["history"].append(entry)
 
+	return 0
+
 def process_json(jsondata):
 	print("jsondata:", jsondata)
 	print("jsondata.keys:", jsondata.keys())
@@ -818,7 +833,9 @@ def process_har(harfile):
 			etime = iso2sec(e["startedDateTime"])
 			if etime >= pagetime and etime < nextpagetime:
 				# print("etime:", etime)
-				process_entry(e)
+				ret = process_entry(e)
+				if ret > 0:
+					break
 
 		i +=1
 
