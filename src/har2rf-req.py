@@ -230,468 +230,72 @@ def find_variable(key, value):
 			# check body
 			if "text" in e["response"]["content"]:
 
-				# check body for raw value
-				if value in e["response"]["content"]["text"]:
-					print("found value (",value,") in body for ", e["request"]["url"])
-
-					start = 0
-					while newvalue == value and start >=0:
-						# print("body:", e["response"]["content"]["text"])
-						# print("start:", start, "looking for value:", value)
-						pos = e["response"]["content"]["text"].find(value, start)
-						# print("pos:", pos)
-						if pos >=0:
-							offset = len(key)*2 + len(value)*2
-							# excerpt = e["response"]["content"]["text"][(pos-len(key)*2):(pos+len(value)*2)]
-							excerpt = e["response"]["content"]["text"][(pos-len(key)-100):(pos+len(value)+100)]
-							# excerpt = e["response"]["content"]["text"][(pos-len(key)-offset):(pos+len(value)+offset)]
-							if key in excerpt:
-								# print(e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
-								print("found key (",key,") in excerpt:", "|{}|".format(excerpt))
-
-								kpos = excerpt.find(key)
-								vpos = excerpt.find(value, kpos)
-								if vpos > kpos:
-									print("kpos:", kpos, "vpos:", vpos)
-									fullprefix = excerpt[0:vpos].strip()
-									prefixarr = fullprefix.splitlines()
-									prefix = prefixarr[-1].strip()
-									print("prefix: |{}|".format(prefix))
-
-									# print("excerpt:", excerpt)
-									print("vpos:", vpos, "	len(value):", len(value), "")
-									spos = vpos+len(value)
-									print("spos:", spos, "	spos+5:", spos+5)
-									#	# suffix = excerpt[spos:5]
-									#	presuffix = excerpt[kpos:(vpos+len(value)+3)]
-									#	print("presuffix: |{}|".format(presuffix))
-									#	# suffix = presuffix[-3:-1]
-									#	suffix = presuffix[-3:len(presuffix)].strip()
-
-									fullsuffix = excerpt[spos:len(excerpt)]
-									suffixarr = fullsuffix.splitlines()
-									suffix = suffixarr[0].strip()
-									print("suffix: |{}|".format(suffix))
-
-
-									# line = "${left}= 	Fetch From Right 	${resp_"+str(resp)+".text} 	"+prefix
-									# outdata["*** Keywords ***"][ekwname].insert(e["step"], line)
-									# # print(line)
-
-									# line = "${"+key+"}= 	Fetch From Left 	${left} 	"+suffix
-									# outdata["*** Keywords ***"][ekwname].insert(e["step"]+1, line)
-									# # print(line)
-
-									newkey = saveparam(key, value)
-
-									# test match with prefix and suffix works as expected?
-									# find prefix from right
-									ml = e["response"]["content"]["text"].rfind(prefix)+len(prefix)
-									# find suffix from left
-									mr = e["response"]["content"]["text"].find(suffix, ml)
-									# get match
-									match = e["response"]["content"]["text"][ml:mr]
-									# print("ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
-
-									goffset = 1
-									if match == value:
-
-										line = "${"+newkey+"}=		Get Substring LRB		${resp_"+str(resp)+".text}		"+prefix+"		"+suffix
-										outdata["*** Keywords ***"][ekwname].insert(estep, line)
-
-
-									else:
-										reprefix = re.escape(prefix)
-										resuffix = re.escape(suffix)
-
-										# test re pattern
-										pattern = reprefix+"(.*?)"+resuffix
-										# e["response"]["content"]["text"]
-										retest = re.search(pattern, e["response"]["content"]["text"]).group(0)
-
-										print("retest:", retest)
-
-										reprefix = re.escape(prefix).replace('"', r'\"').replace("\\", r"\\")
-										resuffix = re.escape(suffix).replace('"', r'\"').replace("\\", r"\\")
-
-										# line = "${regx_match}=		Get Lines Matching Regexp		${resp_"+str(resp)+".text}		"+reprefix+"(.*?)"+resuffix
-										line = "${regx_match}=		evaluate		re.search(\"" + reprefix + "(.*?)" + resuffix + "\", \"\"\"${resp_"+str(resp)+".text}\"\"\").group(0)		re"
-
-										outdata["*** Keywords ***"][ekwname].insert(estep, line)
-										line = "${"+newkey+"}=		Get Substring LRB		${regx_match}		"+prefix+"		"+suffix
-										outdata["*** Keywords ***"][ekwname].insert(estep+1, line)
-
-										goffset += 1
-
-
-									line = "Set Global Variable		${"+newkey+"}"
-									outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
-
-
-
-									newvalue = "${"+newkey+"}"
-									print("newvalue:", newvalue)
-									return newvalue
-							start = pos+len(value)
-						else:
-							start = pos
-						# else:
-							# print("didn't find key (",key,") in excerpt:", excerpt)
-
-
-				# check body for decoded value
-				if decvalue in e["response"]["content"]["text"]:
-					print("found value (",decvalue,") in body for ", e["request"]["url"])
-
-					searchval = decvalue
-					start = 0
-					while newvalue == value and start >=0:
-						# print("body:", e["response"]["content"]["text"])
-						# print("start:", start, "looking for value:", value)
-						pos = e["response"]["content"]["text"].find(searchval, start)
-						# print("pos:", pos)
-						if pos >=0:
-							offset = len(key)*2 + len(decvalue)*2
-							# excerpt = e["response"]["content"]["text"][(pos-len(key)*2):(pos+len(value)*2)]
-							excerpt = e["response"]["content"]["text"][(pos-len(key)-100):(pos+len(searchval)+100)]
-							# excerpt = e["response"]["content"]["text"][(pos-len(key)-offset):(pos+len(value)+offset)]
-							if key in excerpt:
-								# print(e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
-								print("found key (",key,") in excerpt:", "|{}|".format(excerpt))
-
-								ekwname = e["kwname"]
-
-								kpos = excerpt.find(key)
-								vpos = excerpt.find(searchval, kpos)
-								if vpos > kpos:
-									print("kpos:", kpos, "vpos:", vpos)
-									fullprefix = excerpt[0:vpos].strip()
-									prefixarr = fullprefix.splitlines()
-									prefix = prefixarr[-1].strip()
-									print("prefix: |{}|".format(prefix))
-
-									# print("excerpt:", excerpt)
-									print("vpos:", vpos, "	len(value):", len(searchval), "")
-									spos = vpos+len(searchval)
-									print("spos:", spos, "	spos+5:", spos+5)
-									#	# suffix = excerpt[spos:5]
-									#	presuffix = excerpt[kpos:(vpos+len(value)+3)]
-									#	print("presuffix: |{}|".format(presuffix))
-									#	# suffix = presuffix[-3:-1]
-									#	suffix = presuffix[-3:len(presuffix)].strip()
-
-									fullsuffix = excerpt[spos:len(excerpt)]
-									suffixarr = fullsuffix.splitlines()
-									suffix = suffixarr[0].strip()
-									print("suffix: |{}|".format(suffix))
-
-									resp = e["entrycount"]+1
-
-									# line = "${left}= 	Fetch From Right 	${resp_"+str(resp)+".text} 	"+prefix
-									# outdata["*** Keywords ***"][ekwname].insert(e["step"], line)
-									# # print(line)
-
-									# line = "${"+key+"}= 	Fetch From Left 	${left} 	"+suffix
-									# outdata["*** Keywords ***"][ekwname].insert(e["step"]+1, line)
-									# # print(line)
-
-									estep = find_estep(resp, ekwname)
-
-									newkey = saveparam(key, searchval)
-
-									# test match with prefix and suffix works as expected?
-									# find prefix from right
-									ml = e["response"]["content"]["text"].rfind(prefix)+len(prefix)
-									# find suffix from left
-									mr = e["response"]["content"]["text"].find(suffix, ml)
-									# get match
-									match = e["response"]["content"]["text"][ml:mr]
-									# print("ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
-
-									goffset = 1
-									if match == searchval:
-
-										line = "${"+newkey+"}=		Get Substring LRB		${resp_"+str(resp)+".text}		"+prefix+"		"+suffix
-										outdata["*** Keywords ***"][ekwname].insert(estep, line)
-
-
-									else:
-										reprefix = re.escape(prefix)
-										resuffix = re.escape(suffix)
-
-										# test re pattern
-										pattern = reprefix+"(.*?)"+resuffix
-										# e["response"]["content"]["text"]
-										retest = re.search(pattern, e["response"]["content"]["text"]).group(0)
-
-										print("retest:", retest)
-
-										reprefix = re.escape(prefix).replace('"', r'\"').replace("\\", r"\\")
-										resuffix = re.escape(suffix).replace('"', r'\"').replace("\\", r"\\")
-
-										# line = "${regx_match}=		Get Lines Matching Regexp		${resp_"+str(resp)+".text}		"+reprefix+"(.*?)"+resuffix
-										line = "${regx_match}=		evaluate		re.search(\"" + reprefix + "(.*?)" + resuffix + "\", \"\"\"${resp_"+str(resp)+".text}\"\"\").group(0)		re"
-
-										outdata["*** Keywords ***"][ekwname].insert(estep, line)
-										line = "${"+newkey+"}=		Get Substring LRB		${regx_match}		"+prefix+"		"+suffix
-										outdata["*** Keywords ***"][ekwname].insert(estep+1, line)
-
-										goffset += 1
-
-
-									line = "Set Global Variable		${"+newkey+"}"
-									outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
-
-
-
-									newvalue = "${"+newkey+"}"
-									print("newvalue:", newvalue)
-									return newvalue
-							start = pos+len(value)
-						else:
-							start = pos
-
-
-
-				htmlvalue = html.escape(decvalue)
-				print("Try to find decvalue (", decvalue, ") as html encoded value (", htmlvalue, ")")
-				# check body for html enc value
-				if htmlvalue in e["response"]["content"]["text"]:
-					print("found value (", htmlvalue, ") in body for ", e["request"]["url"])
-
-					searchval = htmlvalue
-					start = 0
-					while newvalue == value and start >=0:
-						# print("body:", e["response"]["content"]["text"])
-						# print("start:", start, "looking for value:", value)
-						pos = e["response"]["content"]["text"].find(searchval, start)
-						# print("pos:", pos)
-						if pos >=0:
-							offset = len(key)*2 + len(decvalue)*2
-							# excerpt = e["response"]["content"]["text"][(pos-len(key)*2):(pos+len(value)*2)]
-							excerpt = e["response"]["content"]["text"][(pos-len(key)-100):(pos+len(searchval)+100)]
-							# excerpt = e["response"]["content"]["text"][(pos-len(key)-offset):(pos+len(value)+offset)]
-							if key in excerpt:
-								# print(e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
-								print("found key (",key,") in excerpt:", "|{}|".format(excerpt))
-
-								ekwname = e["kwname"]
-
-								kpos = excerpt.find(key)
-								vpos = excerpt.find(searchval, kpos)
-								if vpos > kpos:
-									print("kpos:", kpos, "vpos:", vpos)
-									fullprefix = excerpt[0:vpos].strip()
-									prefixarr = fullprefix.splitlines()
-									prefix = prefixarr[-1].strip()
-									print("prefix: |{}|".format(prefix))
-
-									# print("excerpt:", excerpt)
-									print("vpos:", vpos, "	len(value):", len(searchval), "")
-									spos = vpos+len(searchval)
-									print("spos:", spos, "	spos+5:", spos+5)
-									#	# suffix = excerpt[spos:5]
-									#	presuffix = excerpt[kpos:(vpos+len(value)+3)]
-									#	print("presuffix: |{}|".format(presuffix))
-									#	# suffix = presuffix[-3:-1]
-									#	suffix = presuffix[-3:len(presuffix)].strip()
-
-									fullsuffix = excerpt[spos:len(excerpt)]
-									suffixarr = fullsuffix.splitlines()
-									suffix = suffixarr[0].strip()
-									print("suffix: |{}|".format(suffix))
-
-									resp = e["entrycount"]+1
-
-									# line = "${left}= 	Fetch From Right 	${resp_"+str(resp)+".text} 	"+prefix
-									# outdata["*** Keywords ***"][ekwname].insert(e["step"], line)
-									# # print(line)
-
-									# line = "${"+key+"}= 	Fetch From Left 	${left} 	"+suffix
-									# outdata["*** Keywords ***"][ekwname].insert(e["step"]+1, line)
-									# # print(line)
-
-									estep = find_estep(resp, ekwname)
-
-									newkey = saveparam(key, searchval)
-
-									# test match with prefix and suffix works as expected?
-									# find prefix from right
-									ml = e["response"]["content"]["text"].rfind(prefix)+len(prefix)
-									# find suffix from left
-									mr = e["response"]["content"]["text"].find(suffix, ml)
-									# get match
-									match = e["response"]["content"]["text"][ml:mr]
-									# print("ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
-
-									goffset = 1
-									if match == searchval:
-
-										line = "${"+newkey+"}=		Get Substring LRB		${resp_"+str(resp)+".text}		"+prefix+"		"+suffix
-										outdata["*** Keywords ***"][ekwname].insert(estep, line)
-
-
-									else:
-										reprefix = re.escape(prefix)
-										resuffix = re.escape(suffix)
-
-										# test re pattern
-										pattern = reprefix+"(.*?)"+resuffix
-										# e["response"]["content"]["text"]
-										retest = re.search(pattern, e["response"]["content"]["text"]).group(0)
-
-										print("retest:", retest)
-
-										reprefix = re.escape(prefix).replace('"', r'\"').replace("\\", r"\\")
-										resuffix = re.escape(suffix).replace('"', r'\"').replace("\\", r"\\")
-
-										# line = "${regx_match}=		Get Lines Matching Regexp		${resp_"+str(resp)+".text}		"+reprefix+"(.*?)"+resuffix
-										line = "${regx_match}=		evaluate		re.search(\"" + reprefix + "(.*?)" + resuffix + "\", \"\"\"${resp_"+str(resp)+".text}\"\"\").group(0)		re"
-
-										outdata["*** Keywords ***"][ekwname].insert(estep, line)
-										line = "${"+newkey+"}=		Get Substring LRB		${regx_match}		"+prefix+"		"+suffix
-										outdata["*** Keywords ***"][ekwname].insert(estep+1, line)
-
-										goffset += 1
-
-
-									line = "Set Global Variable		${"+newkey+"}"
-									outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
-
-
-
-									newvalue = "${"+newkey+"}"
-									return newvalue
-							start = pos+len(value)
-						else:
-							start = pos
-
-
-				print("decvalue:", decvalue, type(decvalue))
-				# htmlvalue = urllib.parse.urlencode(decvalue)
-				# print("htmlvalue:", htmlvalue)
-				# htmlvalue = re.sub(r'%(.?.?)', r'&#x\1;', htmlvalue)
-				htmlvalue = htmlx_encode(decvalue)
-				print("htmlvalue:", htmlvalue)
-				print("Try to find decvalue (", decvalue, ") as html encoded value (", htmlvalue, ")")
-				# check body for html enc value
-				if htmlvalue in e["response"]["content"]["text"]:
-					print("found value (", htmlvalue, ") in body for ", e["request"]["url"])
-
-					searchval = htmlvalue
-					start = 0
-					while newvalue == value and start >=0:
-						# print("body:", e["response"]["content"]["text"])
-						# print("start:", start, "looking for value:", value)
-						pos = e["response"]["content"]["text"].find(searchval, start)
-						# print("pos:", pos)
-						if pos >=0:
-							offset = len(key)*2 + len(decvalue)*2
-							# excerpt = e["response"]["content"]["text"][(pos-len(key)*2):(pos+len(value)*2)]
-							excerpt = e["response"]["content"]["text"][(pos-len(key)-100):(pos+len(searchval)+100)]
-							# excerpt = e["response"]["content"]["text"][(pos-len(key)-offset):(pos+len(value)+offset)]
-							if key in excerpt:
-								# print(e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
-								print("found key (",key,") in excerpt:", "|{}|".format(excerpt))
-
-								ekwname = e["kwname"]
-
-								kpos = excerpt.find(key)
-								vpos = excerpt.find(searchval, kpos)
-								if vpos > kpos:
-									print("kpos:", kpos, "vpos:", vpos)
-									fullprefix = excerpt[0:vpos].strip()
-									prefixarr = fullprefix.splitlines()
-									prefix = prefixarr[-1].strip()
-									print("prefix: |{}|".format(prefix))
-
-									# print("excerpt:", excerpt)
-									print("vpos:", vpos, "	len(value):", len(searchval), "")
-									spos = vpos+len(searchval)
-									print("spos:", spos, "	spos+5:", spos+5)
-									#	# suffix = excerpt[spos:5]
-									#	presuffix = excerpt[kpos:(vpos+len(value)+3)]
-									#	print("presuffix: |{}|".format(presuffix))
-									#	# suffix = presuffix[-3:-1]
-									#	suffix = presuffix[-3:len(presuffix)].strip()
-
-									fullsuffix = excerpt[spos:len(excerpt)]
-									suffixarr = fullsuffix.splitlines()
-									suffix = suffixarr[0].strip()
-									print("suffix: |{}|".format(suffix))
-
-									resp = e["entrycount"]+1
-
-									# line = "${left}= 	Fetch From Right 	${resp_"+str(resp)+".text} 	"+prefix
-									# outdata["*** Keywords ***"][ekwname].insert(e["step"], line)
-									# # print(line)
-
-									# line = "${"+key+"}= 	Fetch From Left 	${left} 	"+suffix
-									# outdata["*** Keywords ***"][ekwname].insert(e["step"]+1, line)
-									# # print(line)
-
-									estep = find_estep(resp, ekwname)
-
-									newkey = saveparam(key, searchval)
-
-									# test match with prefix and suffix works as expected?
-									# find prefix from right
-									ml = e["response"]["content"]["text"].rfind(prefix)+len(prefix)
-									# find suffix from left
-									mr = e["response"]["content"]["text"].find(suffix, ml)
-									# get match
-									match = e["response"]["content"]["text"][ml:mr]
-									# print("ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
-
-									goffset = 1
-									if match == searchval:
-
-										line = "${"+newkey+"}=		Get Substring LRB		${resp_"+str(resp)+".text}		"+prefix+"		"+suffix
-										outdata["*** Keywords ***"][ekwname].insert(estep, line)
-
-
-									else:
-										reprefix = re.escape(prefix)
-										resuffix = re.escape(suffix)
-
-										# test re pattern
-										pattern = reprefix+"(.*?)"+resuffix
-										# e["response"]["content"]["text"]
-										retest = re.search(pattern, e["response"]["content"]["text"]).group(0)
-
-										print("retest:", retest)
-
-										reprefix = re.escape(prefix).replace('"', r'\"').replace("\\", r"\\")
-										resuffix = re.escape(suffix).replace('"', r'\"').replace("\\", r"\\")
-
-										# line = "${regx_match}=		Get Lines Matching Regexp		${resp_"+str(resp)+".text}		"+reprefix+"(.*?)"+resuffix
-										line = "${regx_match}=		evaluate		re.search(\"" + reprefix + "(.*?)" + resuffix + "\", \"\"\"${resp_"+str(resp)+".text}\"\"\").group(0)		re"
-
-										outdata["*** Keywords ***"][ekwname].insert(estep, line)
-										line = "${"+newkey+"}=		Get Substring LRB		${regx_match}		"+prefix+"		"+suffix
-										outdata["*** Keywords ***"][ekwname].insert(estep+1, line)
-
-										goffset += 1
-
-
-
+				searchstrings = []
+				searchstrings.append(("original",value))
+				if value != decvalue:
+					searchstrings.append(("plain", decvalue))
+				htmlx = htmlx_encode(decvalue)
+				if htmlx != decvalue:
+					searchstrings.append(("html", htmlx))
+				htmlx = htmlX_encode(decvalue)
+				if htmlx != decvalue:
+					searchstrings.append(("html", htmlx))
+				urlenc = urlencode_value(decvalue)
+				if urlenc != decvalue:
+					searchstrings.append(("url", urlenc))
+
+				fullresp = e["response"]["content"]["text"]
+				lines = fullresp.splitlines()
+				for searchtup in searchstrings:
+					searchstring = searchtup[1]
+					for line in lines:
+						if newvalue == value and searchstring in line:
+							print("found value (",searchstring,") in body for ", e["request"]["url"])
+
+							lbound, rbound = find_in_string(key, searchstring, line)
+							print("lbound:", lbound, "	rbound:", rbound)
+
+							newkey = ""
+
+							match = substring_LRB(fullresp, lbound, rbound)
+							if not check_match(searchstring, match):
+								lbound = ""
+								rbound = ""
+
+								lbound, rbound = find_in_string(key, searchstring, fullresp)
+								match = substring_LRB(fullresp, lbound, rbound)
+								if not check_match(searchstring, match):
+									lbound = ""
+									rbound = ""
+
+							if len(lbound)>0 and len(rbound)==0:
+								# no need to find rbound
+								newkey = saveparam(key, searchstring)
+
+								line = "${"+newkey+"}=		Fetch From Right		${resp_"+str(resp)+".text}		" + lbound
+								outdata["*** Keywords ***"][ekwname].insert(estep, line)
+
+
+							if len(lbound)>0 and len(rbound)>0:
+								newkey = saveparam(key, searchstring)
+
+								line = "${"+newkey+"}=		Get Substring LRB		${resp_"+str(resp)+".text}		"+lbound+"		"+rbound
+								outdata["*** Keywords ***"][ekwname].insert(estep, line)
+
+
+							if len(newkey)>0:
+
+								if searchtup[0] == "html":
+									estep += 1
 									line = "${"+newkey+"}		Evaluate		html.unescape('${"+newkey+"}')		html"
-									outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
+									outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
-									goffset += 1
+								estep += 1
+								line = "Set Global Variable		${"+newkey+"}	${"+newkey+"}"
+								outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
-									line = "Set Global Variable		${"+newkey+"}"
-									outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
-
-
-
-									newvalue = "${"+newkey+"}"
-									print("newvalue:", newvalue)
-									return newvalue
-							start = pos+len(value)
-						else:
-							start = pos
-
+								newvalue = "${"+newkey+"}"
+								return newvalue
 
 
 	# print("find_variable	Last resort")
@@ -724,6 +328,7 @@ def find_variable(key, value):
 def find_in_string(key, searchval, instr):
 	print("find_in_string key:", key, "	searchval:", searchval, "	instr:", instr)
 
+	blen = 10
 	start = 0
 	kpos = instr.find(key, start)
 	if kpos>0:
@@ -732,16 +337,31 @@ def find_in_string(key, searchval, instr):
 	lbound = ""
 	rbound = ""
 	print("kpos:", kpos, "	vpos:", vpos)
-	if kpos<0 and len(searchval)<10:
+	if kpos<0 and len(searchval)<blen/2:
 		# probability of returning an unrelated value match is too high
 		return (lbound, rbound)
 
 	if kpos>0 and kpos<vpos:
 		lbound = instr[kpos:vpos]
-	if len(lbound)==0 and vpos>10:
-		lbound = instr[vpos-10:vpos]
-	if len(lbound)==0 and vpos>0 and vpos<10:
+
+		start = 0
+		lbkpos = lbound.find(key, start)
+		while lbkpos>0:
+			lbound = lbound[lbkpos:]
+			lbkpos = lbound.find(key, start)
+
+	if len(lbound)==0 and vpos>blen:
+		lbound = instr[vpos-blen:vpos]
+	if len(lbound)==0 and vpos>0 and vpos<blen:
 		lbound = instr[:vpos]
+
+	if lbound.find('\r', 0)>0:
+		lmin = lbound.find('\r', 0)
+		lbound = lbound[lmin:]
+
+	if lbound.find('\n', 0)>0:
+		lmin = lbound.find('\n', 0)
+		lbound = lbound[lmin:]
 
 	print("lbound:", lbound)
 	vepos = vpos+len(searchval)
@@ -751,15 +371,80 @@ def find_in_string(key, searchval, instr):
 
 	rlen = len(instr) - vepos
 	print("rlen:", rlen, "	and right:", instr[vepos:])
-	if rlen < 11:
+	if rlen < blen+1:
 		rbound = instr[vepos:]
 
-	if rlen > 10:
-		rbound = instr[vepos:vepos+10]
+	if rlen > blen:
+		rbound = instr[vepos:vepos+blen]
 
-	print("rbound:", rbound)
-	return (lbound, rbound)
+	if rbound.find('\r', 0)>0:
+		rmax = rbound.find('\r', 0)
+		rbound = rbound[:rmax]
 
+	if rbound.find('\n', 0)>0:
+		rmax = rbound.find('\n', 0)
+		rbound = rbound[:rmax]
+
+	# check we got the right value?
+	match = substring_LRB(instr, lbound, rbound)
+	if check_match(searchval, match):
+		print("rbound:", rbound)
+		return (lbound, rbound)
+
+	# we didn't get the expected match
+	while( ( len(instr) - len(searchval) ) / 2 > blen ):
+		blen += 1
+		if len(lbound)<blen and vpos>blen:
+			lbound = instr[vpos-blen:vpos]
+		if len(lbound)<blen and vpos>0 and vpos<blen:
+			lbound = instr[:vpos]
+
+		if lbound.find('\r', 0)>0:
+			lmin = lbound.find('\r', 0)
+			lbound = lbound[lmin:]
+
+		if lbound.find('\n', 0)>0:
+			lmin = lbound.find('\n', 0)
+			lbound = lbound[lmin:]
+
+		rlen = len(instr) - vepos
+		if rlen < blen+1:
+			rbound = instr[vepos:]
+		if rlen > blen:
+			rbound = instr[vepos:vepos+blen]
+
+		if rbound.find('\r', 0)>0:
+			rmax = rbound.find('\r', 0)
+			rbound = rbound[:rmax]
+
+		if rbound.find('\n', 0)>0:
+			rmax = rbound.find('\n', 0)
+			rbound = rbound[:rmax]
+
+		match = substring_LRB(instr, lbound, rbound)
+		if check_match(searchval, match):
+			print("rbound:", rbound)
+			return (lbound, rbound)
+
+	return ("", "")
+
+def substring_LRB(searchstring, left, right):
+	match = ""
+	posl = searchstring.find(left)
+	if posl<0:
+		return match
+	matchl = searchstring[posl+len(left):]
+	posr = matchl.find(right)
+	if posr<0:
+		return match
+	match = matchl[:posr]
+	return match
+
+def check_match(orig, match):
+	if orig == match:
+		return True
+	else:
+		return False
 
 def htmlX_encode(s):
 	htmlCodes = (
