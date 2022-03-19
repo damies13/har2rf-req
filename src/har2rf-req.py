@@ -115,9 +115,22 @@ def find_variable(key, value):
 	if "paramvalues" not in workingdata:
 		workingdata["paramvalues"] = {}
 
+	possiblekeys = ["${"+key+"}"]
+	possiblekeyn = [key]
+	i = 1
+	newname = key+"_"+str(i)
+	# print("newname:", newname, workingdata["paramnames"])
+	while newname in workingdata["paramnames"]:
+		possiblekeys.append("${"+newname+"}")
+		possiblekeyn.append(newname)
+		i += 1
+		newname = key+"_"+str(i)
+		# print("newname:", newname)
+	print("possiblekeys:", possiblekeys)
 
 	if decvalue in workingdata["paramvalues"]:
-		if workingdata["paramvalues"][decvalue] == "${"+key+"}":
+		print("decvalue key:", workingdata["paramvalues"][decvalue], " <=> ", possiblekeys)
+		if workingdata["paramvalues"][decvalue] in possiblekeys:
 			newvalue = workingdata["paramvalues"][decvalue]
 			return newvalue
 
@@ -125,7 +138,8 @@ def find_variable(key, value):
 	# print("value:", value, workingdata["paramvalues"].keys())
 	if newvalue == value and value in workingdata["paramvalues"]:
 		# print("value:", value, "	paramvalues:", workingdata["paramvalues"][value])
-		if workingdata["paramvalues"][value] == "${"+key+"}":
+		print("value key:", workingdata["paramvalues"][value], " <=> ", possiblekeys)
+		if workingdata["paramvalues"][value] in possiblekeys:
 			newvalue = workingdata["paramvalues"][value]
 			return newvalue
 
@@ -133,9 +147,18 @@ def find_variable(key, value):
 	# print("value:", value, workingdata["paramnames"].keys())
 	if newvalue == value and key in workingdata["paramnames"]:
 		# print("key:", key, "	paramnames:", workingdata["paramnames"][key])
-		if workingdata["paramnames"][key]["oval"] == value:
-			newvalue = workingdata["paramnames"][key]["nval"]
-			return newvalue
+		for keyi in possiblekeyn:
+			print("keyi:", keyi, "	oval: ", workingdata["paramnames"][keyi]["oval"], " <=> ", decvalue)
+			if workingdata["paramnames"][keyi]["oval"] == decvalue:
+				newvalue = workingdata["paramnames"][keyi]["nval"]
+				return newvalue
+			print("keyi:", keyi, "	oval: ", workingdata["paramnames"][keyi]["oval"], " <=> ", value)
+			if workingdata["paramnames"][keyi]["oval"] == value:
+				newvalue = workingdata["paramnames"][keyi]["nval"]
+				return newvalue
+
+
+
 
 	# print("find_variable	history")
 	# search history to try and find it
@@ -340,7 +363,7 @@ def find_variable(key, value):
 
 
 				# check body for decoded value
-				if decvalue in e["response"]["content"]["text"]:
+				if value != decvalue and decvalue in e["response"]["content"]["text"]:
 					print("found value (",decvalue,") in body for ", e["request"]["url"])
 
 					searchval = decvalue
@@ -454,9 +477,9 @@ def find_variable(key, value):
 
 
 				htmlvalue = html.escape(decvalue)
-				print("Try to find decvalue (", decvalue, ") as html encoded value (", htmlvalue, ")")
+				# print("Try to find decvalue (", decvalue, ") as html encoded value (", htmlvalue, ")")
 				# check body for html enc value
-				if htmlvalue in e["response"]["content"]["text"]:
+				if value != htmlvalue and htmlvalue in e["response"]["content"]["text"]:
 					print("found value (", htmlvalue, ") in body for ", e["request"]["url"])
 
 					searchval = htmlvalue
@@ -567,15 +590,15 @@ def find_variable(key, value):
 							start = pos
 
 
-				print("decvalue:", decvalue, type(decvalue))
-				# htmlvalue = urllib.parse.urlencode(decvalue)
+				# print("decvalue:", decvalue, type(decvalue))
+				htmlvalue = urllib.parse.quote(decvalue)
 				# print("htmlvalue:", htmlvalue)
 				# htmlvalue = re.sub(r'%(.?.?)', r'&#x\1;', htmlvalue)
 				htmlvalue = htmlx_encode(decvalue)
-				print("htmlvalue:", htmlvalue)
-				print("Try to find decvalue (", decvalue, ") as html encoded value (", htmlvalue, ")")
+				# print("htmlvalue:", htmlvalue)
+				# print("Try to find decvalue (", decvalue, ") as html encoded value (", htmlvalue, ")")
 				# check body for html enc value
-				if htmlvalue in e["response"]["content"]["text"]:
+				if value != htmlvalue and htmlvalue in e["response"]["content"]["text"]:
 					print("found value (", htmlvalue, ") in body for ", e["request"]["url"])
 
 					searchval = htmlvalue
@@ -790,11 +813,10 @@ def htmlx_encode(s):
 def urlencode_value(value):
 	newvalue = value
 	if isinstance(value, str):
-		print("urlencode_value value:", value)
+		# print("urlencode_value value:", value)
 		if '%' in newvalue:
 			newvalue = urllib.parse.encode(newvalue)
-
-		print("urlencode_value newvalue:", newvalue)
+		# print("urlencode_value newvalue:", newvalue)
 	return newvalue
 
 def decode_value(value):
