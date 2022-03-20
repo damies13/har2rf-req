@@ -322,6 +322,17 @@ def find_variable(key, value):
 										line = "${"+newkey+"}=		Get Substring LRB		${resp_"+str(resp)+".text}		"+prefix+"		"+suffix
 										outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
+										if decvalue != value:
+											if '%' in value:
+												# ${$filter}=		Evaluate 	urllib.parse.unquote_plus('${$filter}')		urllib.parse
+												goffset += 1
+												line = "${"+newkey+"}=		Evaluate 	urllib.parse.unquote_plus('${"+newkey+"}')		urllib.parse"
+												outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
+
+											if '&#' in value:
+												goffset += 1
+												line = "${"+newkey+"}		Evaluate		html.unescape('${"+newkey+"}')		html"
+												outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
 									else:
 										reprefix = re.escape(prefix)
@@ -882,6 +893,7 @@ def process_entry(entry):
 
 
 	argdata = ""
+	lineprefix = ""
 
 	# headers
 
@@ -942,8 +954,12 @@ def process_entry(entry):
 				outdata["*** Keywords ***"][kwname].append(line)
 				argdata += "	" + "params=${"+dname+"}"
 
+			if path[:4] == "wss:":
+				# Still need to figure out how to handle WSS calls but not high priority
+				lineprefix = "# "
+
 			resp = "resp_{}".format(ec)
-			line = "${"+resp+"}=		GET On Session		" + workingdata["session"] + "		url=" + path + argdata
+			line = lineprefix + "${"+resp+"}=		GET On Session		" + workingdata["session"] + "		url=" + path + argdata
 			outdata["*** Keywords ***"][kwname].append(line)
 
 			# line = "Log 	${"+resp+".text}"
