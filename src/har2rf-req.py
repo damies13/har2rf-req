@@ -815,7 +815,7 @@ def urlencode_value(value):
 	if isinstance(value, str):
 		# print("urlencode_value value:", value)
 		if '%' in newvalue:
-			newvalue = urllib.parse.encode(newvalue)
+			newvalue = urllib.parse.unquote_plus(newvalue)
 		# print("urlencode_value newvalue:", newvalue)
 	return newvalue
 
