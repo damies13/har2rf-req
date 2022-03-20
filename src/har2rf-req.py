@@ -883,6 +883,22 @@ def process_entry(entry):
 
 	argdata = ""
 
+	# headers
+
+	hdrs = ""
+	for h in entry["request"]["headers"]:
+		print("h:", h["name"], h["value"])
+		specialh = ["cookie", "accept-encoding", "content-length"]	# , "pragma", "cache-control"
+		if h["name"].lower() not in specialh and h["name"][0] != ":":
+			# hdrs[h["name"]] = h["value"]
+			value = find_variable(h["name"], h["value"])
+			hdrs += "	" + h["name"] + "=" + value
+	if len(hdrs)>0:
+		line = "&{Req_Headers}=		Create dictionary" + hdrs
+		outdata["*** Keywords ***"][kwname].append(line)
+		argdata += "	" + "headers=${Req_Headers}"
+
+
 	# GET
 	# GET
 	# GET
@@ -982,11 +998,11 @@ def process_entry(entry):
 			if pd_try and "text" in pd and pd["text"][0] == "{":
 				pd_try = False
 				jsondata = json.loads(pd["text"])
-				dname = "params_{}".format(ec)
+				dname = "json_{}".format(ec)
 				paramname, lines = process_dict(dname, jsondata)
 				# print("paramname:", paramname, "	paramlst:", paramlst)
 				outdata["*** Keywords ***"][kwname].extend(lines)
-				argdata += "	" + "json=${"+dname+"}"
+				argdata += "	" + "json="+paramname
 
 
 		statuscode = entry["response"]["status"]
@@ -1013,36 +1029,46 @@ def process_entry(entry):
 	workingdata["history"].append(entry)
 
 def process_dict(key, dictdata):
-	dictparam = "${"+key+"}"
+	# keyname = "d_"+key
+	keyname = key
+	dictparam = "${"+keyname+"}"
 	dictconstr = []
 	dicttems = ""
 
 	for dkey in dictdata.keys():
 		value = dictdata[dkey]
+		newvalue = "${EMPTY}"
 		print("process_dict dkey: ", dkey, "	value:", value, type(value))
+
+		if value is None:
+			newvalue = "${None}"
 		if isinstance(value, str) or isinstance(value, int):
 			newvalue = find_variable(dkey, str(value))
 			# dictdata[key] = newvalue
 
 		if isinstance(value, list):
-			newvalue, paramlst = process_list(dkey, value)
+			dkeyname = keyname + "_" + dkey
+			newvalue, paramlst = process_list(dkeyname, value)
 			dictconstr.extend(paramlst)
 
 		if isinstance(value, dict):
-			newvalue, paramlst = process_dict(dkey, value)
+			dkeyname = keyname + "_" + dkey
+			newvalue, paramlst = process_dict(dkeyname, value)
 			dictconstr.extend(paramlst)
 
 		dicttems = dicttems + "		" + dkey + "=" + newvalue
 
 
 	print("process_dict dictdata: ", dictdata)
-	dictconstr.append("&{" + key + "}=		Create Dictionary" + dicttems)
+	dictconstr.append("&{" + keyname + "}=		Create Dictionary" + dicttems)
 	print("new robot line:",dictconstr[-1])
 
 	return (dictparam, dictconstr)
 
 def process_list(key, listdata):
-	dictparam = "${"+key+"}"
+	# keyname = "l_"+key
+	keyname = key
+	dictparam = "${"+keyname+"}"
 	dictconstr = []
 	listitems = ""
 	for i in range(len(listdata)):
@@ -1063,7 +1089,7 @@ def process_list(key, listdata):
 
 		listitems = listitems + "		" + newvalue
 
-	dictconstr.append("@{" + key + "}=		Create List" + listitems)
+	dictconstr.append("@{" + keyname + "}=		Create List" + listitems)
 	print("new robot line:",dictconstr[-1])
 
 	return (dictparam, dictconstr)
@@ -1157,11 +1183,15 @@ def process_har(harfile):
 
 	# sort pages
 	sortedpages = sorted(har["log"]["pages"], key=lambda k: iso2sec(k["startedDateTime"]))
+	# sortedpages = har["log"]["pages"]
 	# print("sortedpages:", sortedpages)
 
 	# sort pages
 	sortedentries = sorted(har["log"]["entries"], key=lambda k: iso2sec(k["startedDateTime"]))
+	# sortedentries = har["log"]["entries"]
 	# print("sortedentries:", sortedentries)
+
+	e0time = iso2sec(sortedentries[0]["startedDateTime"])-0.002
 
 	i = 0
 	for page in sortedpages:
@@ -1171,6 +1201,8 @@ def process_har(harfile):
 		# else:
 			# nextpagetime = int(iso2sec(sortedpages[i+1]["startedDateTime"]))
 		pagetime = iso2sec(page["startedDateTime"])-0.002
+		if i==0 and pagetime>e0time:
+			pagetime=e0time
 		if i+1 == len(sortedpages):
 			nextpagetime = datetime.timestamp(datetime.now())
 		else:
@@ -1183,10 +1215,11 @@ def process_har(harfile):
 
 		for e in sortedentries:
 			# print(e)
-			# print(e["request"]["method"], e["request"]["url"])
+			print("e URL:", e["request"]["method"], e["request"]["url"])
 
 			# etime = int(iso2sec(e["startedDateTime"]))
 			etime = iso2sec(e["startedDateTime"])
+			print("e time:", etime)
 			if etime >= pagetime and etime < nextpagetime:
 				# print("etime:", etime)
 				process_entry(e)
@@ -1209,7 +1242,7 @@ if os.path.exists(pathin):
 		add_test_case(tc)
 		# get robot files
 		# dir = os.scandir(pathin)
-		dir = os.listdir(pathin)
+		dir = sorted(os.listdir(pathin))
 		# print("dir:", dir)
 		for item in dir:
 			print("item:", item, ".har ==", os.path.splitext(item)[1].lower())
