@@ -982,7 +982,12 @@ def process_entry(entry):
 			if pd_try and "text" in pd and pd["text"][0] == "{":
 				pd_try = False
 				jsondata = json.loads(pd["text"])
-				jsondata = process_json(jsondata)
+				dname = "params_{}".format(ec)
+				paramname, lines = process_dict(dname, jsondata)
+				# print("paramname:", paramname, "	paramlst:", paramlst)
+				outdata["*** Keywords ***"][kwname].extend(lines)
+				argdata += "	" + "json=${"+dname+"}"
+
 
 		statuscode = entry["response"]["status"]
 		if statuscode == 302:
@@ -1007,32 +1012,61 @@ def process_entry(entry):
 		workingdata["history"] = []
 	workingdata["history"].append(entry)
 
-def process_json(jsondata):
-	print("jsondata:", jsondata)
-	print("jsondata.keys:", jsondata.keys())
-	for key in jsondata.keys():
-		value = jsondata[key]
-		print("key: ", key, "	value:", value, type(value))
-		if isinstance(value, str) or isinstance(value, int):
-			newvalue = find_variable(key, str(value))
-			jsondata[key] = newvalue
-		if isinstance(value, list):
-			for i in range(len(value)):
-				skey = "{}_{}".format(key, i)
-				svalue = value[i]
-				print("skey: ", skey, "	svalue:", svalue, type(svalue))
-				if isinstance(svalue, str) or isinstance(svalue, int):
-					newvalue = find_variable(skey, str(svalue))
-					value[i] = newvalue
-				if isinstance(svalue, dict):
-					value[i] = process_json(svalue)
+def process_dict(key, dictdata):
+	dictparam = "${"+key+"}"
+	dictconstr = []
+	dicttems = ""
 
-			jsondata[key] = value
+	for dkey in dictdata.keys():
+		value = dictdata[dkey]
+		print("process_dict dkey: ", dkey, "	value:", value, type(value))
+		if isinstance(value, str) or isinstance(value, int):
+			newvalue = find_variable(dkey, str(value))
+			# dictdata[key] = newvalue
+
+		if isinstance(value, list):
+			newvalue, paramlst = process_list(dkey, value)
+			dictconstr.extend(paramlst)
 
 		if isinstance(value, dict):
-			jsondata[key] = process_json(value)
-	print("jsondata:", jsondata)
-	return jsondata
+			newvalue, paramlst = process_dict(dkey, value)
+			dictconstr.extend(paramlst)
+
+		dicttems = dicttems + "		" + dkey + "=" + newvalue
+
+
+	print("process_dict dictdata: ", dictdata)
+	dictconstr.append("&{" + key + "}=		Create Dictionary" + dicttems)
+	print("new robot line:",dictconstr[-1])
+
+	return (dictparam, dictconstr)
+
+def process_list(key, listdata):
+	dictparam = "${"+key+"}"
+	dictconstr = []
+	listitems = ""
+	for i in range(len(listdata)):
+		skey = "{}_{}".format(key, i)
+		svalue = listdata[i]
+		newvalue = ""
+		print("skey: ", skey, "	svalue:", svalue, type(svalue))
+		if isinstance(svalue, str) or isinstance(svalue, int):
+			newvalue = find_variable(skey, str(svalue))
+
+		if isinstance(svalue, list):
+			newvalue, paramlst = process_list(skey, svalue)
+			dictconstr.extend(paramlst)
+
+		if isinstance(svalue, dict):
+			newvalue, paramlst = process_dict(skey, svalue)
+			dictconstr.extend(paramlst)
+
+		listitems = listitems + "		" + newvalue
+
+	dictconstr.append("@{" + key + "}=		Create List" + listitems)
+	print("new robot line:",dictconstr[-1])
+
+	return (dictparam, dictconstr)
 
 
 def saveparam(name, value):
