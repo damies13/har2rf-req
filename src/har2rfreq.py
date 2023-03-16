@@ -4,10 +4,13 @@ import os
 from datetime import datetime
 import dateutil.parser
 import re
+import inspect
 
 import urllib.parse
 import html
 
+
+import modules.h2r_html
 
 
 class har2rfreq():
@@ -17,24 +20,61 @@ class har2rfreq():
 	outdata = {}
 	workingdata = {}
 
+	debuglvl = 6
+
 	def __init__(self):
-		# print(sys.argv)
+		# self.debugmsg(9, sys.argv)
+		self.debugmsg(0, "har2rfreq")
 		if len(sys.argv) < 2:
 			self.display_help()
 
+		self.debugmsg(9, "Run init_modules")
+		self.init_modules()
+		self.debugmsg(9, "Run init_outdata")
 		self.init_outdata()
 
 		self.pathin = os.path.abspath(sys.argv[1])
+		self.debugmsg(9, "self.pathin:", self.pathin)
 		self.pathout = os.path.dirname(self.pathin)
+		self.debugmsg(9, "self.pathout:", self.pathout)
 
+		self.debugmsg(9, "Run process_files")
 		self.process_files()
 
+	def init_modules(self):
+		self.h2r_html = modules.h2r_html.h2r_html(self)
+
 	def display_help(self):
-		print("")
-		print("har2rfreq Help")
-		print("")
-		print(sys.argv[0], "<path to har file>")
-		print("")
+		self.debugmsg(0, "")
+		self.debugmsg(0, "Help")
+		self.debugmsg(0, "")
+		self.debugmsg(0, sys.argv[0], "<path to har file>")
+		self.debugmsg(0, "")
+
+	def debugmsg(self, lvl, *msg):
+		msglst = []
+		prefix = ""
+		# self.debugmsg(9, self.debuglvl >= lvl, self.debuglvl, lvl, *msg)
+		if self.debuglvl >= lvl:
+			try:
+				if self.debuglvl >= 4:
+					stack = inspect.stack()
+					the_class = stack[1][0].f_locals["self"].__class__.__name__
+					the_method = stack[1][0].f_code.co_name
+					the_line = stack[1][0].f_lineno
+					prefix = "{}: {}({}): [{}:{}]	".format(str(the_class), the_method, the_line, self.debuglvl, lvl)
+					if len(prefix.strip())<32:
+						prefix = "{}	".format(prefix)
+					if len(prefix.strip())<24:
+						prefix = "{}	".format(prefix)
+
+					msglst.append(str(prefix))
+
+				for itm in msg:
+					msglst.append(str(itm))
+				print(" ".join(msglst))
+			except:
+				pass
 
 	def process_files(self):
 
@@ -42,17 +82,17 @@ class har2rfreq():
 			if os.path.isdir(self.pathin):
 				self.pathout = self.pathin
 				tc = os.path.split(self.pathin)[-1]
-				print("tc:", tc)
+				self.debugmsg(9, "tc:", tc)
 				self.add_test_case(tc)
 				# get robot files
 				# dir = os.scandir(pathin)
 				dir = sorted(os.listdir(self.pathin))
-				# print("dir:", dir)
+				# self.debugmsg(9, "dir:", dir)
 				for item in dir:
-					print("item:", item, ".har ==", os.path.splitext(item)[1].lower())
+					self.debugmsg(9, "item:", item, ".har ==", os.path.splitext(item)[1].lower())
 					if os.path.splitext(item)[1].lower() == ".har":
 						harpath = os.path.join(self.pathin, item)
-						print("harpath:", harpath)
+						self.debugmsg(9, "harpath:", harpath)
 						self.process_har(harpath)
 
 			else:
@@ -61,7 +101,7 @@ class har2rfreq():
 				tc = os.path.splitext(harfilename)[0]
 
 
-				print("tc:", tc)
+				self.debugmsg(9, "tc:", tc)
 				self.add_test_case(tc)
 				self.process_har(self.pathin)
 
@@ -70,11 +110,11 @@ class har2rfreq():
 		else:
 			import glob
 			file_list = glob.glob(self.pathin)
-			# print(file_list)
+			# self.debugmsg(9, file_list)
 			if len(file_list)>0:
 				for item in file_list:
 					tc = os.path.split(os.path.dirname(item))[-1]
-					print("tc:", tc)
+					self.debugmsg(9, "tc:", tc)
 					self.add_test_case(tc)
 					self.process_har(item)
 				self.save_robot(self.pathout)
@@ -82,7 +122,7 @@ class har2rfreq():
 
 
 	def init_outdata(self):
-		print("__init__")
+		self.debugmsg(9, "__init__")
 		# self.outdata = {"*** Settings ***": ["Library	RequestsLibrary", "Library	String"], "*** Variables ***": [], "*** Test Cases ***": {}, "*** Keywords ***": {}}
 		self.outdata["*** Settings ***"] = ["Library	RequestsLibrary", "Library	String"]
 		self.outdata["*** Variables ***"] = []
@@ -103,15 +143,15 @@ class har2rfreq():
 		with open(harfile, "rb") as f:
 			hardata = f.read()
 			hartxt = hardata.decode("utf-8")
-		# print("hartxt:", hartxt)
+		# self.debugmsg(9, "hartxt:", hartxt)
 		har = json.loads(hartxt)
 		self.workingdata["har"] = har
 		return har
 
 	def save_robot(self, pathout):
-		# print(self.outdata)
+		# self.debugmsg(9, self.outdata)
 		ofname = os.path.join(pathout, self.workingdata["testcase"]+".robot")
-		print(ofname)
+		self.debugmsg(9, ofname)
 		if os.path.exists(ofname):
 			os.remove(ofname)
 
@@ -135,10 +175,10 @@ class har2rfreq():
 		starts = "${resp_"+str(respno)+"}"
 		i = 0
 		for e in self.outdata["*** Keywords ***"][kwname]:
-			# print(starts, " | ", e)
+			# self.debugmsg(9, starts, " | ", e)
 			if e.startswith(starts):
 				i += 1
-				# print("i:", i, starts, " | ", e)
+				# self.debugmsg(9, "i:", i, starts, " | ", e)
 				return i
 			i += 1
 
@@ -146,6 +186,12 @@ class har2rfreq():
 
 	def find_variable(self, key, value):
 
+		self.debugmsg(6, "")
+		self.debugmsg(6, "key:", key, "	value:", value)
+
+		if value.strip() != value:
+			value = value.strip()
+			self.debugmsg(6, "key:", key, "	value:", value)
 
 		newvalue = value
 		decvalue = self.decode_value(value)
@@ -154,31 +200,9 @@ class har2rfreq():
 		if len(value.strip())<1:
 			return "${EMPTY}"
 
-		# print("self.find_variable	key:", key, "	value:", value)
+		# self.debugmsg(9, "self.find_variable	key:", key, "	value:", value)
 
-		if newvalue == value and value.isdigit() and len(value)>9:
-			# check if it was the timestamp at the time of the request in the har file
-			sseconds = value[0:10]
-			# print("sseconds:", sseconds, "	value:", value)
-			intvar = int(sseconds)
-			# intime = datetime.fromtimestamp(intvar)
-			# print("intime:", intime, "	intvar:", intvar)
-			ec = self.workingdata["entrycount"]
-			# print("ec:", ec)
-			entry = self.workingdata["har"]["log"]["entries"][ec]
-			startedDateTime = entry["startedDateTime"]
-			# print("startedDateTime:", startedDateTime, "	intvar:", intvar)
-			reqtime = dateutil.parser.isoparse(startedDateTime)
-			# print("reqtime:", reqtime)
-			cseconds = datetime.timestamp(reqtime)
-			# timediff = (reqtime - intime).total_seconds()
-			timediff = abs(cseconds - intvar)
-			# print("timediff:", timediff)
-			if timediff < 60:
-				line = "${TS}=		Get Time		epoch"
-				self.outdata["*** Keywords ***"][kwname].append(line)
-				newvalue = "${TS}"
-				return newvalue
+		self.debugmsg(6, "has value already been found")
 
 		if "paramnames" not in self.workingdata:
 			self.workingdata["paramnames"] = {}
@@ -189,51 +213,144 @@ class har2rfreq():
 		possiblekeyn = [key]
 		i = 1
 		newname = key+"_"+str(i)
-		# print("newname:", newname, self.workingdata["paramnames"])
+		# self.debugmsg(9, "newname:", newname, self.workingdata["paramnames"])
 		while newname in self.workingdata["paramnames"]:
 			possiblekeys.append("${"+newname+"}")
 			possiblekeyn.append(newname)
 			i += 1
 			newname = key+"_"+str(i)
-			# print("newname:", newname)
-		print("possiblekeys:", possiblekeys)
+			# self.debugmsg(9, "newname:", newname)
+		self.debugmsg(8, "possiblekeys:", possiblekeys)
 
 		if decvalue in self.workingdata["paramvalues"]:
-			print("decvalue key:", self.workingdata["paramvalues"][decvalue], " <=> ", possiblekeys)
+			self.debugmsg(8, "decvalue key:", self.workingdata["paramvalues"][decvalue], " <=> ", possiblekeys)
 			if self.workingdata["paramvalues"][decvalue] in possiblekeys:
 				newvalue = self.workingdata["paramvalues"][decvalue]
 				return newvalue
 
-		# print("self.find_variable	paramvalues")
-		# print("value:", value, self.workingdata["paramvalues"].keys())
+		# self.debugmsg(9, "self.find_variable	paramvalues")
+		# self.debugmsg(9, "value:", value, self.workingdata["paramvalues"].keys())
 		if newvalue == value and value in self.workingdata["paramvalues"]:
-			# print("value:", value, "	paramvalues:", self.workingdata["paramvalues"][value])
-			print("value key:", self.workingdata["paramvalues"][value], " <=> ", possiblekeys)
+			# self.debugmsg(9, "value:", value, "	paramvalues:", self.workingdata["paramvalues"][value])
+			self.debugmsg(8, "value key:", self.workingdata["paramvalues"][value], " <=> ", possiblekeys)
 			if self.workingdata["paramvalues"][value] in possiblekeys:
 				newvalue = self.workingdata["paramvalues"][value]
 				return newvalue
 
-		# print("self.find_variable	paramnames")
-		# print("value:", value, self.workingdata["paramnames"].keys())
+		# self.debugmsg(9, "self.find_variable	paramnames")
+		# self.debugmsg(9, "value:", value, self.workingdata["paramnames"].keys())
 		if newvalue == value and key in self.workingdata["paramnames"]:
-			# print("key:", key, "	paramnames:", self.workingdata["paramnames"][key])
+			# self.debugmsg(9, "key:", key, "	paramnames:", self.workingdata["paramnames"][key])
 			for keyi in possiblekeyn:
-				print("keyi:", keyi, "	oval: ", self.workingdata["paramnames"][keyi]["oval"], " <=> ", decvalue)
+				self.debugmsg(8, "keyi:", keyi, "	oval: ", self.workingdata["paramnames"][keyi]["oval"], " <=> ", decvalue)
 				if self.workingdata["paramnames"][keyi]["oval"] == decvalue:
 					newvalue = self.workingdata["paramnames"][keyi]["nval"]
 					return newvalue
-				print("keyi:", keyi, "	oval: ", self.workingdata["paramnames"][keyi]["oval"], " <=> ", value)
+				self.debugmsg(8, "keyi:", keyi, "	oval: ", self.workingdata["paramnames"][keyi]["oval"], " <=> ", value)
 				if self.workingdata["paramnames"][keyi]["oval"] == value:
 					newvalue = self.workingdata["paramnames"][keyi]["nval"]
 					return newvalue
 
+		self.debugmsg(6, "is value timestamp now")
+		if newvalue == value and value.isdigit() and len(value)>9:
+			# check if it was the timestamp at the time of the request in the har file
+			sseconds = value[0:10]
+			# self.debugmsg(9, "sseconds:", sseconds, "	value:", value)
+			intvar = int(sseconds)
+			# intime = datetime.fromtimestamp(intvar)
+			# self.debugmsg(9, "intime:", intime, "	intvar:", intvar)
+			ec = self.workingdata["entrycount"]
+			# self.debugmsg(9, "ec:", ec)
+			entry = self.workingdata["har"]["log"]["entries"][ec]
+			startedDateTime = entry["startedDateTime"]
+			# self.debugmsg(8, "startedDateTime:", startedDateTime, "	intvar:", intvar)
+			reqtime = dateutil.parser.isoparse(startedDateTime)
+			# self.debugmsg(8, "reqtime:", reqtime)
+			cseconds = datetime.timestamp(reqtime)
+			# timediff = (reqtime - intime).total_seconds()
+			timediff = abs(cseconds - intvar)
+			self.debugmsg(8, "timediff:", timediff, "	intvar:", intvar, "	cseconds:", cseconds)
+			# self.debugmsg(9, "timediff:", timediff)
+			if timediff < 60:
+				line = "${TS}=		Get Time		epoch"
+				self.outdata["*** Keywords ***"][kwname].append(line)
+				newvalue = "${TS}"
+				return newvalue
+
+
+		self.debugmsg(6, "is value request's date")
+		ec = self.workingdata["entrycount"]
+		# self.debugmsg(9, "ec:", ec)
+		entry = self.workingdata["har"]["log"]["entries"][ec]
+		startedDateTime = entry["startedDateTime"]
+		# self.debugmsg(8, "startedDateTime:", startedDateTime)
+		reqtime = dateutil.parser.isoparse(startedDateTime)
+		# self.debugmsg(8, "reqtime:", reqtime, reqtime.strftime("%Y-%m-%d"))
+		reqlst = {}
+		reqlst[reqtime.strftime("%Y-%m-%d")] = "%Y-%m-%d"  # ISO Date
+		reqlst[reqtime.strftime("%d/%m/%Y")] = "%d/%m/%Y"  # UK Date
+		reqlst[reqtime.strftime("%d.%m.%Y")] = "%d.%m.%Y"  # EU Date
+		reqlst[reqtime.strftime("%d-%m-%Y")] = "%d-%m-%Y"  # Other Date
+		reqlst[reqtime.strftime("%m/%d/%Y")] = "%m/%d/%Y"  # US Date
+		reqlst[reqtime.strftime("%m-%d-%Y")] = "%m-%d-%Y"  # US Date -
+		reqlst[reqtime.strftime("%m.%d.%Y")] = "%m.%d.%Y"  # US Date .
+		if newvalue == value and value in list(reqlst.keys()):
+			sformat = reqlst[value]
+			self.debugmsg(8, "sformat:", sformat)
+
+			vformat = sformat.replace("%Y", "${yyyy}").replace("%m", "${mm}").replace("%d", "${dd}")
+			self.debugmsg(8, "vformat:", vformat)
+			# ${yyyy} 	${mm} 	${dd} = 	Get Time 	year,month,day
+			line = "${yyyy} 	${mm} 	${dd}= 	Get Time 	year,month,day"
+			self.outdata["*** Keywords ***"][kwname].append(line)
+
+			line = "${"+key+"}=		Set Variable		" + vformat
+			self.outdata["*** Keywords ***"][kwname].append(line)
+
+			line = "Set Global Variable		${"+key+"} 	${"+key+"}"
+			self.outdata["*** Keywords ***"][kwname].append(line)
+
+			newvalue = "${"+key+"}"
+			return newvalue
+
+		self.debugmsg(6, "is value today's date")
+		todaylst = {}
+		todaylst[datetime.now().strftime("%Y-%m-%d")] = "%Y-%m-%d"  # ISO Date
+		todaylst[datetime.now().strftime("%d/%m/%Y")] = "%d/%m/%Y"  # UK Date
+		todaylst[datetime.now().strftime("%d.%m.%Y")] = "%d.%m.%Y"  # EU Date
+		todaylst[datetime.now().strftime("%d-%m-%Y")] = "%d-%m-%Y"  # Other Date
+		todaylst[datetime.now().strftime("%m/%d/%Y")] = "%m/%d/%Y"  # US Date
+		todaylst[datetime.now().strftime("%m-%d-%Y")] = "%m-%d-%Y"  # US Date -
+		todaylst[datetime.now().strftime("%m.%d.%Y")] = "%m.%d.%Y"  # US Date .
+		if newvalue == value and value in list(todaylst.keys()):
+			self.debugmsg(6, "value is today's date", value)
+			idx = list(todaylst.keys()).index(value)
+			self.debugmsg(8, "idx", idx, "	todaylst:", todaylst.keys())
+			sformat = todaylst[value]
+			self.debugmsg(8, "sformat:", sformat)
+
+			vformat = sformat.replace("%Y", "${yyyy}").replace("%m", "${mm}").replace("%d", "${dd}")
+			self.debugmsg(8, "vformat:", vformat)
+			# ${yyyy} 	${mm} 	${dd} = 	Get Time 	year,month,day
+			line = "${yyyy} 	${mm} 	${dd} = 	Get Time 	year,month,day"
+			self.outdata["*** Keywords ***"][kwname].append(line)
+
+			line = "${"+key+"}=		Set Variable		" + vformat
+			self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
+
+			line = "Set Global Variable		${"+key+"}	${"+key+"}"
+			self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
+
+			newvalue = "${"+key+"}}"
+			return newvalue
 
 
 
-		# print("self.find_variable	history")
+
+		# self.debugmsg(9, "self.find_variable	history")
 		# search history to try and find it
 		if newvalue == value and "history" in self.workingdata:
-			# print("Searching History")
+			# self.debugmsg(9, "Searching History")
 			for e in self.workingdata["history"]:
 
 				resp = e["entrycount"]+1
@@ -241,9 +358,10 @@ class har2rfreq():
 				estep = self.find_estep(resp, ekwname)
 
 				# check headers
+				self.debugmsg(6, "is value in headers")
 				for h in e["response"]["headers"]:
 					if h["value"] == value and h["name"] == key:
-						# print("found value (",value,") and key (",key,") in header for ", e["request"]["url"])
+						# self.debugmsg(9, "found value (",value,") and key (",key,") in header for ", e["request"]["url"])
 
 						newkey = self.saveparam(key, value)
 
@@ -258,10 +376,10 @@ class har2rfreq():
 					searchstrings.append(value)
 					if value != decvalue:
 						searchstrings.append(decvalue)
-					htmlx = self.htmlx_encode(decvalue)
+					htmlx = self.h2r_html.htmlx_encode(decvalue)
 					if htmlx != decvalue:
 						searchstrings.append(htmlx)
-					htmlx = self.htmlX_encode(decvalue)
+					htmlx = self.h2r_html.htmlX_encode(decvalue)
 					if htmlx != decvalue:
 						searchstrings.append(htmlx)
 					urlenc = self.urlencode_value(decvalue)
@@ -272,7 +390,7 @@ class har2rfreq():
 					for searchstring in searchstrings:
 						if newvalue == value and searchstring in h["value"]:
 							lbound, rbound = self.find_in_string(key, searchstring, h["value"])
-							print("lbound:", lbound, "	rbound:", rbound)
+							self.debugmsg(9, "lbound:", lbound, "	rbound:", rbound)
 
 							if len(lbound)>0 and len(rbound)==0:
 								# no need to find rbound
@@ -307,9 +425,10 @@ class har2rfreq():
 
 
 				# check Cookies
+				self.debugmsg(6, "is value in cookies")
 				for c in e["response"]["cookies"]:
 					if c["value"] == value and c["name"] == key:
-						# print("found value (",value,") and key (",key,") in cookies for ", e["request"]["url"])
+						# self.debugmsg(9, "found value (",value,") and key (",key,") in cookies for ", e["request"]["url"])
 
 						newkey = self.saveparam(key, value)
 
@@ -321,59 +440,73 @@ class har2rfreq():
 						return newvalue
 
 				# check body
+				self.debugmsg(6, "is value in response body")
 				if "text" in e["response"]["content"]:
+					self.debugmsg(8, "response content has text")
 
 					# check body for raw value
 					if value in e["response"]["content"]["text"]:
-						print("found value (",value,") in body for ", e["request"]["url"])
+						self.debugmsg(8, "found value (",value,") in body for ", e["request"]["url"])
 
 						start = 0
 						while newvalue == value and start >=0:
-							# print("body:", e["response"]["content"]["text"])
-							# print("start:", start, "looking for value:", value)
+							self.debugmsg(9, "body:", e["response"]["content"]["text"])
+							self.debugmsg(8, "start:", start, "looking for value:", value)
 							pos = e["response"]["content"]["text"].find(value, start)
-							# print("pos:", pos)
+							self.debugmsg(8, "pos:", pos)
 							if pos >=0:
 								offset = len(key)*2 + len(value)*2
+								self.debugmsg(8, "offset:", offset)
 								# excerpt = e["response"]["content"]["text"][(pos-len(key)*2):(pos+len(value)*2)]
 								excerpt = e["response"]["content"]["text"][(pos-len(key)-100):(pos+len(value)+100)]
+								self.debugmsg(8, "excerpt:", excerpt)
 								# excerpt = e["response"]["content"]["text"][(pos-len(key)-offset):(pos+len(value)+offset)]
-								if key in excerpt:
-									# print(e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
-									print("found key (",key,") in excerpt:", "|{}|".format(excerpt))
 
-									kpos = excerpt.find(key)
+								srchkey = key
+								if key in ['NoKey']:
+									self.debugmsg(8, "Special case:", key)
+									srchkey = "?"
+
+								if key[0] == '_':
+									srchkey = key[1:]
+
+
+								if srchkey in excerpt:
+									# self.debugmsg(9, e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
+									self.debugmsg(8, "found key (",srchkey,") in excerpt:", "|{}|".format(excerpt))
+
+									kpos = excerpt.find(srchkey)
 									vpos = excerpt.find(value, kpos)
 									if vpos > kpos:
-										print("kpos:", kpos, "vpos:", vpos)
+										self.debugmsg(8, "kpos:", kpos, "vpos:", vpos)
 										fullprefix = excerpt[0:vpos].strip()
 										prefixarr = fullprefix.splitlines()
 										prefix = prefixarr[-1].strip()
-										print("prefix: |{}|".format(prefix))
+										self.debugmsg(8, "prefix: |{}|".format(prefix))
 
-										# print("excerpt:", excerpt)
-										print("vpos:", vpos, "	len(value):", len(value), "")
+										# self.debugmsg(9, "excerpt:", excerpt)
+										self.debugmsg(8, "vpos:", vpos, "	len(value):", len(value), "")
 										spos = vpos+len(value)
-										print("spos:", spos, "	spos+5:", spos+5)
+										self.debugmsg(8, "spos:", spos, "	spos+5:", spos+5)
 										#	# suffix = excerpt[spos:5]
 										#	presuffix = excerpt[kpos:(vpos+len(value)+3)]
-										#	print("presuffix: |{}|".format(presuffix))
+										#	self.debugmsg(9, "presuffix: |{}|".format(presuffix))
 										#	# suffix = presuffix[-3:-1]
 										#	suffix = presuffix[-3:len(presuffix)].strip()
 
 										fullsuffix = excerpt[spos:len(excerpt)]
 										suffixarr = fullsuffix.splitlines()
 										suffix = suffixarr[0].strip()
-										print("suffix: |{}|".format(suffix))
+										self.debugmsg(8, "suffix: |{}|".format(suffix))
 
 
 										# line = "${left}= 	Fetch From Right 	${resp_"+str(resp)+".text} 	"+prefix
 										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"], line)
-										# # print(line)
+										# # self.debugmsg(9, line)
 
 										# line = "${"+key+"}= 	Fetch From Left 	${left} 	"+suffix
 										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"]+1, line)
-										# # print(line)
+										# # self.debugmsg(9, line)
 
 										newkey = self.saveparam(key, value)
 
@@ -384,7 +517,7 @@ class har2rfreq():
 										mr = e["response"]["content"]["text"].find(suffix, ml)
 										# get match
 										match = e["response"]["content"]["text"][ml:mr]
-										# print("ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
+										# self.debugmsg(9, "ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
 
 										goffset = 1
 										if match == value:
@@ -402,7 +535,7 @@ class har2rfreq():
 											# e["response"]["content"]["text"]
 											retest = re.search(pattern, e["response"]["content"]["text"]).group(0)
 
-											print("retest:", retest)
+											self.debugmsg(8, "retest:", retest)
 
 											reprefix = re.escape(prefix).replace('"', r'\"').replace("\\", r"\\")
 											resuffix = re.escape(suffix).replace('"', r'\"').replace("\\", r"\\")
@@ -423,70 +556,71 @@ class har2rfreq():
 
 
 										newvalue = "${"+newkey+"}"
-										print("newvalue:", newvalue)
+										self.debugmsg(8, "newvalue:", newvalue)
 										return newvalue
+
 								start = pos+len(value)
 							else:
 								start = pos
 							# else:
-								# print("didn't find key (",key,") in excerpt:", excerpt)
+								# self.debugmsg(9, "didn't find key (",key,") in excerpt:", excerpt)
 
 
 					# check body for decoded value
 					if value != decvalue and decvalue in e["response"]["content"]["text"]:
-						print("found value (",decvalue,") in body for ", e["request"]["url"])
+						self.debugmsg(8, "found value (",decvalue,") in body for ", e["request"]["url"])
 
 						searchval = decvalue
 						start = 0
 						while newvalue == value and start >=0:
-							# print("body:", e["response"]["content"]["text"])
-							# print("start:", start, "looking for value:", value)
+							# self.debugmsg(9, "body:", e["response"]["content"]["text"])
+							# self.debugmsg(9, "start:", start, "looking for value:", value)
 							pos = e["response"]["content"]["text"].find(searchval, start)
-							# print("pos:", pos)
+							# self.debugmsg(9, "pos:", pos)
 							if pos >=0:
 								offset = len(key)*2 + len(decvalue)*2
 								# excerpt = e["response"]["content"]["text"][(pos-len(key)*2):(pos+len(value)*2)]
 								excerpt = e["response"]["content"]["text"][(pos-len(key)-100):(pos+len(searchval)+100)]
 								# excerpt = e["response"]["content"]["text"][(pos-len(key)-offset):(pos+len(value)+offset)]
 								if key in excerpt:
-									# print(e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
-									print("found key (",key,") in excerpt:", "|{}|".format(excerpt))
+									# self.debugmsg(9, e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
+									self.debugmsg(9, "found key (",key,") in excerpt:", "|{}|".format(excerpt))
 
 									ekwname = e["kwname"]
 
 									kpos = excerpt.find(key)
 									vpos = excerpt.find(searchval, kpos)
 									if vpos > kpos:
-										print("kpos:", kpos, "vpos:", vpos)
+										self.debugmsg(9, "kpos:", kpos, "vpos:", vpos)
 										fullprefix = excerpt[0:vpos].strip()
 										prefixarr = fullprefix.splitlines()
 										prefix = prefixarr[-1].strip()
-										print("prefix: |{}|".format(prefix))
+										self.debugmsg(9, "prefix: |{}|".format(prefix))
 
-										# print("excerpt:", excerpt)
-										print("vpos:", vpos, "	len(value):", len(searchval), "")
+										# self.debugmsg(9, "excerpt:", excerpt)
+										self.debugmsg(9, "vpos:", vpos, "	len(value):", len(searchval), "")
 										spos = vpos+len(searchval)
-										print("spos:", spos, "	spos+5:", spos+5)
+										self.debugmsg(9, "spos:", spos, "	spos+5:", spos+5)
 										#	# suffix = excerpt[spos:5]
 										#	presuffix = excerpt[kpos:(vpos+len(value)+3)]
-										#	print("presuffix: |{}|".format(presuffix))
+										#	self.debugmsg(9, "presuffix: |{}|".format(presuffix))
 										#	# suffix = presuffix[-3:-1]
 										#	suffix = presuffix[-3:len(presuffix)].strip()
 
 										fullsuffix = excerpt[spos:len(excerpt)]
 										suffixarr = fullsuffix.splitlines()
 										suffix = suffixarr[0].strip()
-										print("suffix: |{}|".format(suffix))
+										self.debugmsg(9, "suffix: |{}|".format(suffix))
 
 										resp = e["entrycount"]+1
 
 										# line = "${left}= 	Fetch From Right 	${resp_"+str(resp)+".text} 	"+prefix
 										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"], line)
-										# # print(line)
+										# # self.debugmsg(9, line)
 
 										# line = "${"+key+"}= 	Fetch From Left 	${left} 	"+suffix
 										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"]+1, line)
-										# # print(line)
+										# # self.debugmsg(9, line)
 
 										estep = self.find_estep(resp, ekwname)
 
@@ -499,7 +633,7 @@ class har2rfreq():
 										mr = e["response"]["content"]["text"].find(suffix, ml)
 										# get match
 										match = e["response"]["content"]["text"][ml:mr]
-										# print("ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
+										# self.debugmsg(9, "ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
 
 										goffset = 1
 										if match == searchval:
@@ -517,7 +651,7 @@ class har2rfreq():
 											# e["response"]["content"]["text"]
 											retest = re.search(pattern, e["response"]["content"]["text"]).group(0)
 
-											print("retest:", retest)
+											self.debugmsg(9, "retest:", retest)
 
 											reprefix = re.escape(prefix).replace('"', r'\"').replace("\\", r"\\")
 											resuffix = re.escape(suffix).replace('"', r'\"').replace("\\", r"\\")
@@ -538,7 +672,7 @@ class har2rfreq():
 
 
 										newvalue = "${"+newkey+"}"
-										print("newvalue:", newvalue)
+										self.debugmsg(9, "newvalue:", newvalue)
 										return newvalue
 								start = pos+len(value)
 							else:
@@ -547,62 +681,62 @@ class har2rfreq():
 
 
 					htmlvalue = html.escape(decvalue)
-					# print("Try to find decvalue (", decvalue, ") as html encoded value (", htmlvalue, ")")
+					self.debugmsg(8, "Try to find decvalue (", decvalue, ") as html encoded value (", htmlvalue, ")")
 					# check body for html enc value
 					if value != htmlvalue and htmlvalue in e["response"]["content"]["text"]:
-						print("found value (", htmlvalue, ") in body for ", e["request"]["url"])
+						self.debugmsg(9, "found value (", htmlvalue, ") in body for ", e["request"]["url"])
 
 						searchval = htmlvalue
 						start = 0
 						while newvalue == value and start >=0:
-							# print("body:", e["response"]["content"]["text"])
-							# print("start:", start, "looking for value:", value)
+							# self.debugmsg(9, "body:", e["response"]["content"]["text"])
+							# self.debugmsg(9, "start:", start, "looking for value:", value)
 							pos = e["response"]["content"]["text"].find(searchval, start)
-							# print("pos:", pos)
+							# self.debugmsg(9, "pos:", pos)
 							if pos >=0:
 								offset = len(key)*2 + len(decvalue)*2
 								# excerpt = e["response"]["content"]["text"][(pos-len(key)*2):(pos+len(value)*2)]
 								excerpt = e["response"]["content"]["text"][(pos-len(key)-100):(pos+len(searchval)+100)]
 								# excerpt = e["response"]["content"]["text"][(pos-len(key)-offset):(pos+len(value)+offset)]
 								if key in excerpt:
-									# print(e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
-									print("found key (",key,") in excerpt:", "|{}|".format(excerpt))
+									# self.debugmsg(9, e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
+									self.debugmsg(9, "found key (",key,") in excerpt:", "|{}|".format(excerpt))
 
 									ekwname = e["kwname"]
 
 									kpos = excerpt.find(key)
 									vpos = excerpt.find(searchval, kpos)
 									if vpos > kpos:
-										print("kpos:", kpos, "vpos:", vpos)
+										self.debugmsg(9, "kpos:", kpos, "vpos:", vpos)
 										fullprefix = excerpt[0:vpos].strip()
 										prefixarr = fullprefix.splitlines()
 										prefix = prefixarr[-1].strip()
-										print("prefix: |{}|".format(prefix))
+										self.debugmsg(9, "prefix: |{}|".format(prefix))
 
-										# print("excerpt:", excerpt)
-										print("vpos:", vpos, "	len(value):", len(searchval), "")
+										# self.debugmsg(9, "excerpt:", excerpt)
+										self.debugmsg(9, "vpos:", vpos, "	len(value):", len(searchval), "")
 										spos = vpos+len(searchval)
-										print("spos:", spos, "	spos+5:", spos+5)
+										self.debugmsg(9, "spos:", spos, "	spos+5:", spos+5)
 										#	# suffix = excerpt[spos:5]
 										#	presuffix = excerpt[kpos:(vpos+len(value)+3)]
-										#	print("presuffix: |{}|".format(presuffix))
+										#	self.debugmsg(9, "presuffix: |{}|".format(presuffix))
 										#	# suffix = presuffix[-3:-1]
 										#	suffix = presuffix[-3:len(presuffix)].strip()
 
 										fullsuffix = excerpt[spos:len(excerpt)]
 										suffixarr = fullsuffix.splitlines()
 										suffix = suffixarr[0].strip()
-										print("suffix: |{}|".format(suffix))
+										self.debugmsg(9, "suffix: |{}|".format(suffix))
 
 										resp = e["entrycount"]+1
 
 										# line = "${left}= 	Fetch From Right 	${resp_"+str(resp)+".text} 	"+prefix
 										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"], line)
-										# # print(line)
+										# # self.debugmsg(9, line)
 
 										# line = "${"+key+"}= 	Fetch From Left 	${left} 	"+suffix
 										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"]+1, line)
-										# # print(line)
+										# # self.debugmsg(9, line)
 
 										estep = self.find_estep(resp, ekwname)
 
@@ -615,7 +749,7 @@ class har2rfreq():
 										mr = e["response"]["content"]["text"].find(suffix, ml)
 										# get match
 										match = e["response"]["content"]["text"][ml:mr]
-										# print("ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
+										# self.debugmsg(9, "ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
 
 										goffset = 1
 										if match == searchval:
@@ -633,7 +767,7 @@ class har2rfreq():
 											# e["response"]["content"]["text"]
 											retest = re.search(pattern, e["response"]["content"]["text"]).group(0)
 
-											print("retest:", retest)
+											self.debugmsg(9, "retest:", retest)
 
 											reprefix = re.escape(prefix).replace('"', r'\"').replace("\\", r"\\")
 											resuffix = re.escape(suffix).replace('"', r'\"').replace("\\", r"\\")
@@ -660,68 +794,68 @@ class har2rfreq():
 								start = pos
 
 
-					# print("decvalue:", decvalue, type(decvalue))
+					self.debugmsg(8, "decvalue:", decvalue, type(decvalue))
 					htmlvalue = urllib.parse.quote(decvalue)
-					# print("htmlvalue:", htmlvalue)
+					self.debugmsg(8, "htmlvalue:", htmlvalue)
 					# htmlvalue = re.sub(r'%(.?.?)', r'&#x\1;', htmlvalue)
-					htmlvalue = self.htmlx_encode(decvalue)
-					# print("htmlvalue:", htmlvalue)
-					# print("Try to find decvalue (", decvalue, ") as html encoded value (", htmlvalue, ")")
+					htmlvalue = self.h2r_html.htmlx_encode(decvalue)
+					self.debugmsg(8, "htmlvalue:", htmlvalue)
+					self.debugmsg(8, "Try to find decvalue (", decvalue, ") as html encoded value (", htmlvalue, ")")
 					# check body for html enc value
 					if value != htmlvalue and htmlvalue in e["response"]["content"]["text"]:
-						print("found value (", htmlvalue, ") in body for ", e["request"]["url"])
+						self.debugmsg(8, "found value (", htmlvalue, ") in body for ", e["request"]["url"])
 
 						searchval = htmlvalue
 						start = 0
 						while newvalue == value and start >=0:
-							# print("body:", e["response"]["content"]["text"])
-							# print("start:", start, "looking for value:", value)
+							# self.debugmsg(9, "body:", e["response"]["content"]["text"])
+							# self.debugmsg(9, "start:", start, "looking for value:", value)
 							pos = e["response"]["content"]["text"].find(searchval, start)
-							# print("pos:", pos)
+							# self.debugmsg(9, "pos:", pos)
 							if pos >=0:
 								offset = len(key)*2 + len(decvalue)*2
 								# excerpt = e["response"]["content"]["text"][(pos-len(key)*2):(pos+len(value)*2)]
 								excerpt = e["response"]["content"]["text"][(pos-len(key)-100):(pos+len(searchval)+100)]
 								# excerpt = e["response"]["content"]["text"][(pos-len(key)-offset):(pos+len(value)+offset)]
 								if key in excerpt:
-									# print(e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
-									print("found key (",key,") in excerpt:", "|{}|".format(excerpt))
+									# self.debugmsg(9, e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
+									self.debugmsg(8, "found key (",key,") in excerpt:", "|{}|".format(excerpt))
 
 									ekwname = e["kwname"]
 
 									kpos = excerpt.find(key)
 									vpos = excerpt.find(searchval, kpos)
 									if vpos > kpos:
-										print("kpos:", kpos, "vpos:", vpos)
+										self.debugmsg(8, "kpos:", kpos, "vpos:", vpos)
 										fullprefix = excerpt[0:vpos].strip()
 										prefixarr = fullprefix.splitlines()
 										prefix = prefixarr[-1].strip()
-										print("prefix: |{}|".format(prefix))
+										self.debugmsg(8, "prefix: |{}|".format(prefix))
 
-										# print("excerpt:", excerpt)
-										print("vpos:", vpos, "	len(value):", len(searchval), "")
+										# self.debugmsg(9, "excerpt:", excerpt)
+										self.debugmsg(8, "vpos:", vpos, "	len(value):", len(searchval), "")
 										spos = vpos+len(searchval)
-										print("spos:", spos, "	spos+5:", spos+5)
+										self.debugmsg(8, "spos:", spos, "	spos+5:", spos+5)
 										#	# suffix = excerpt[spos:5]
 										#	presuffix = excerpt[kpos:(vpos+len(value)+3)]
-										#	print("presuffix: |{}|".format(presuffix))
+										#	self.debugmsg(9, "presuffix: |{}|".format(presuffix))
 										#	# suffix = presuffix[-3:-1]
 										#	suffix = presuffix[-3:len(presuffix)].strip()
 
 										fullsuffix = excerpt[spos:len(excerpt)]
 										suffixarr = fullsuffix.splitlines()
 										suffix = suffixarr[0].strip()
-										print("suffix: |{}|".format(suffix))
+										self.debugmsg(8, "suffix: |{}|".format(suffix))
 
 										resp = e["entrycount"]+1
 
 										# line = "${left}= 	Fetch From Right 	${resp_"+str(resp)+".text} 	"+prefix
 										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"], line)
-										# # print(line)
+										# # self.debugmsg(9, line)
 
 										# line = "${"+key+"}= 	Fetch From Left 	${left} 	"+suffix
 										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"]+1, line)
-										# # print(line)
+										# # self.debugmsg(9, line)
 
 										estep = self.find_estep(resp, ekwname)
 
@@ -734,7 +868,7 @@ class har2rfreq():
 										mr = e["response"]["content"]["text"].find(suffix, ml)
 										# get match
 										match = e["response"]["content"]["text"][ml:mr]
-										# print("ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
+										# self.debugmsg(9, "ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
 
 										goffset = 1
 										if match == searchval:
@@ -752,7 +886,7 @@ class har2rfreq():
 											# e["response"]["content"]["text"]
 											retest = re.search(pattern, e["response"]["content"]["text"]).group(0)
 
-											print("retest:", retest)
+											self.debugmsg(8, "retest:", retest)
 
 											reprefix = re.escape(prefix).replace('"', r'\"').replace("\\", r"\\")
 											resuffix = re.escape(suffix).replace('"', r'\"').replace("\\", r"\\")
@@ -779,7 +913,7 @@ class har2rfreq():
 
 
 										newvalue = "${"+newkey+"}"
-										print("newvalue:", newvalue)
+										self.debugmsg(8, "newvalue:", newvalue)
 										return newvalue
 								start = pos+len(value)
 							else:
@@ -787,20 +921,21 @@ class har2rfreq():
 
 
 
-		# print("self.find_variable	Last resort")
+		# self.debugmsg(9, "find_variable	Last resort")
 		# Last resort if it didn't exist anywhere, so create it as a hard coded variable
 		if newvalue != decvalue:
+			self.debugmsg(6, "Last resort if value didn't exist anywhere")
 			newvalue = decvalue
 			newkey = self.saveparam(key, decvalue)
 			line = "${"+newkey+"}		"+decvalue
 			self.outdata["*** Variables ***"].append(line)
 
 			newvalue = "${"+newkey+"}"
-			# print("last resort", newkey, newvalue)
+			self.debugmsg(8, "last resort", newkey, newvalue)
 			return newvalue
 
 		if newvalue == value:
-			# print("last resort", key, value)
+			self.debugmsg(6, "Last resort if value didn't exist anywhere")
 
 			newkey = self.saveparam(key, value)
 
@@ -808,14 +943,14 @@ class har2rfreq():
 			self.outdata["*** Variables ***"].append(line)
 
 			newvalue = "${"+newkey+"}"
-			# print("last resort", newkey, newvalue)
+			self.debugmsg(8, "last resort", newkey, newvalue)
 			return newvalue
 
 
 		return newvalue
 
 	def find_in_string(self, key, searchval, instr):
-		print("find_in_string key:", key, "	searchval:", searchval, "	instr:", instr)
+		self.debugmsg(9, "find_in_string key:", key, "	searchval:", searchval, "	instr:", instr)
 
 		start = 0
 		kpos = instr.find(key, start)
@@ -824,7 +959,7 @@ class har2rfreq():
 		vpos = instr.find(searchval, start)
 		lbound = ""
 		rbound = ""
-		print("kpos:", kpos, "	vpos:", vpos)
+		self.debugmsg(9, "kpos:", kpos, "	vpos:", vpos)
 		if kpos<0 and len(searchval)<10:
 			# probability of returning an unrelated value match is too high
 			return (lbound, rbound)
@@ -836,73 +971,48 @@ class har2rfreq():
 		if len(lbound)==0 and vpos>0 and vpos<10:
 			lbound = instr[:vpos]
 
-		print("lbound:", lbound)
+		self.debugmsg(9, "lbound:", lbound)
 		vepos = vpos+len(searchval)
 		if vepos == len(instr) and len(lbound)>0:
 			# no need to find rbound
 			return (lbound, rbound)
 
 		rlen = len(instr) - vepos
-		print("rlen:", rlen, "	and right:", instr[vepos:])
+		self.debugmsg(9, "rlen:", rlen, "	and right:", instr[vepos:])
 		if rlen < 11:
 			rbound = instr[vepos:]
 
 		if rlen > 10:
 			rbound = instr[vepos:vepos+10]
 
-		print("rbound:", rbound)
+		self.debugmsg(9, "rbound:", rbound)
 		return (lbound, rbound)
 
-
-	def htmlX_encode(self, s):
-		htmlCodes = (
-			('&', '&amp;'),
-			("=", '&#x3D;'),
-			("'", '&#x27;'),
-			('"', '&quot;'),
-			('>', '&gt;'),
-			('<', '&lt;'),
-		)
-		for code in htmlCodes:
-			s = s.replace(code[0], code[1])
-		return s
-
-	def htmlx_encode(self, s):
-		htmlCodes = (
-			('&', '&amp;'),
-			("=", '&#x3d;'),
-			("'", '&#x27;'),
-			('"', '&quot;'),
-			('>', '&gt;'),
-			('<', '&lt;'),
-		)
-		for code in htmlCodes:
-			s = s.replace(code[0], code[1])
-		return s
 
 	def urlencode_value(self, value):
 		newvalue = value
 		if isinstance(value, str):
-			# print("urlencode_value value:", value)
+			# self.debugmsg(9, "urlencode_value value:", value)
 			if '%' in newvalue:
 				newvalue = urllib.parse.unquote_plus(newvalue)
-			# print("urlencode_value newvalue:", newvalue)
+			# self.debugmsg(9, "urlencode_value newvalue:", newvalue)
 		return newvalue
 
 	def decode_value(self, value):
 		newvalue = value
 		if isinstance(value, str):
-			print("decode_value value:", value)
+			self.debugmsg(9, "decode_value value:", value)
 			if '%' in newvalue:
 				newvalue = urllib.parse.unquote_plus(newvalue)
 
-			print("decode_value newvalue:", newvalue)
+			self.debugmsg(9, "decode_value newvalue:", newvalue)
 		return newvalue
 
 	def process_entry(self, entry):
 
 
-		print(entry["request"]["method"], entry["request"]["url"])
+		self.debugmsg(9, entry)
+		self.debugmsg(7, entry["request"]["method"], entry["request"]["url"])
 
 		kwname = self.workingdata["keyword"]
 
@@ -918,7 +1028,7 @@ class har2rfreq():
 			cook = ""
 			updatesess = 0
 			for h in entry["request"]["headers"]:
-				print("h:", h["name"], h["value"])
+				self.debugmsg(9, "h:", h["name"], h["value"])
 				specialh = ["cookie", "accept-encoding"]
 				if h["name"].lower() not in specialh and h["name"][0] != ":":
 					# hdrs[h["name"]] = h["value"]
@@ -957,7 +1067,7 @@ class har2rfreq():
 
 		hdrs = ""
 		for h in entry["request"]["headers"]:
-			print("h:", h["name"], h["value"])
+			self.debugmsg(8, "h:", h["name"], h["value"])
 			specialh = ["cookie", "accept-encoding", "content-length"]	# , "pragma", "cache-control"
 			if h["name"].lower() not in specialh and h["name"][0] != ":":
 				# hdrs[h["name"]] = h["value"]
@@ -1002,8 +1112,9 @@ class har2rfreq():
 							newvalue = self.find_variable(key, value)
 							parrout.append("=".join([key, newvalue]))
 						else:
+							key = "${EMPTY}"
 							newvalue = self.find_variable("NoKey", p)
-							parrout.append(newvalue)
+							parrout.append("=".join([key, newvalue]))
 
 					params = "	".join(parrout)
 
@@ -1069,8 +1180,8 @@ class har2rfreq():
 					pd_try = False
 					jsondata = json.loads(pd["text"])
 					dname = "json_{}".format(ec)
-					paramname, lines = process_dict(dname, jsondata)
-					# print("paramname:", paramname, "	paramlst:", paramlst)
+					paramname, lines = self.process_dict(dname, jsondata)
+					self.debugmsg(8, "paramname:", paramname, "	paramlst:", paramlst)
 					self.outdata["*** Keywords ***"][kwname].extend(lines)
 					argdata += "	" + "json="+paramname
 
@@ -1108,7 +1219,7 @@ class har2rfreq():
 		for dkey in dictdata.keys():
 			value = dictdata[dkey]
 			newvalue = "${EMPTY}"
-			print("process_dict dkey: ", dkey, "	value:", value, type(value))
+			self.debugmsg(9, "self.process_dict dkey: ", dkey, "	value:", value, type(value))
 
 			if value is None:
 				newvalue = "${None}"
@@ -1123,15 +1234,15 @@ class har2rfreq():
 
 			if isinstance(value, dict):
 				dkeyname = keyname + "_" + dkey
-				newvalue, paramlst = process_dict(dkeyname, value)
+				newvalue, paramlst = self.process_dict(dkeyname, value)
 				dictconstr.extend(paramlst)
 
 			dicttems = dicttems + "		" + dkey + "=" + newvalue
 
 
-		print("process_dict dictdata: ", dictdata)
+		self.debugmsg(9, "self.process_dict dictdata: ", dictdata)
 		dictconstr.append("&{" + keyname + "}=		Create Dictionary" + dicttems)
-		print("new robot line:",dictconstr[-1])
+		self.debugmsg(9, "new robot line:",dictconstr[-1])
 
 		return (dictparam, dictconstr)
 
@@ -1145,7 +1256,7 @@ class har2rfreq():
 			skey = "{}_{}".format(key, i)
 			svalue = listdata[i]
 			newvalue = ""
-			print("skey: ", skey, "	svalue:", svalue, type(svalue))
+			self.debugmsg(9, "skey: ", skey, "	svalue:", svalue, type(svalue))
 			if isinstance(svalue, str) or isinstance(svalue, int):
 				newvalue = self.find_variable(skey, str(svalue))
 
@@ -1154,13 +1265,13 @@ class har2rfreq():
 				dictconstr.extend(paramlst)
 
 			if isinstance(svalue, dict):
-				newvalue, paramlst = process_dict(skey, svalue)
+				newvalue, paramlst = self.process_dict(skey, svalue)
 				dictconstr.extend(paramlst)
 
 			listitems = listitems + "		" + newvalue
 
 		dictconstr.append("@{" + keyname + "}=		Create List" + listitems)
-		print("new robot line:",dictconstr[-1])
+		self.debugmsg(9, "new robot line:",dictconstr[-1])
 
 		return (dictparam, dictconstr)
 
@@ -1173,11 +1284,11 @@ class har2rfreq():
 		if name in self.workingdata["paramnames"]:
 			i = 0
 			while newname in self.workingdata["paramnames"]:
-				print("newname:", newname)
+				self.debugmsg(9, "newname:", newname)
 				i += 1
 				newname = name + "_{}".format(i)
 
-			print("newname:", newname)
+			self.debugmsg(9, "newname:", newname)
 
 
 		if "paramnames" not in self.workingdata:
@@ -1193,7 +1304,7 @@ class har2rfreq():
 		if value not in self.workingdata["paramvalues"]:
 			self.workingdata["paramvalues"][value] = "${"+newname+"}"
 
-		print("saved", "${"+newname+"}", "=", value)
+		self.debugmsg(9, "saved", "${"+newname+"}", "=", value)
 		return newname
 
 	def add_test_case(self, tcname):
@@ -1225,9 +1336,9 @@ class har2rfreq():
 
 		tcname = self.workingdata["testcase"]
 		url = self.workingdata["har"]["log"]["entries"][0]["request"]["url"]
-		print("url", url)
+		self.debugmsg(9, "url", url)
 		urlarr = url.split("/")
-		print("urlarr", urlarr)
+		self.debugmsg(9, "urlarr", urlarr)
 		basearr = [urlarr[0],urlarr[1],urlarr[2]]
 		sessionname = "sess_" + urlarr[2].replace(".", "_")
 		# baseurl = basearr.join("/")
@@ -1239,29 +1350,31 @@ class har2rfreq():
 
 	def iso2sec(self, isotime):
 		reqtime = dateutil.parser.isoparse(isotime)
-		# print("reqtime:", reqtime)
+		# self.debugmsg(9, "reqtime:", reqtime)
 		cseconds = datetime.timestamp(reqtime)
 		return cseconds
 
 	def process_har(self, harfile):
 		har = self.load_har(harfile)
-		# print(har)
+		# self.debugmsg(9, har)
 		harfilename = os.path.basename(harfile)
 		kwbname = os.path.splitext(harfilename)[0]
 
 		# sort pages
 		sortedpages = sorted(har["log"]["pages"], key=lambda k: self.iso2sec(k["startedDateTime"]))
 		# sortedpages = har["log"]["pages"]
-		# print("sortedpages:", sortedpages)
+		# self.debugmsg(9, "sortedpages:", sortedpages)
 
 		# sort pages
 		sortedentries = sorted(har["log"]["entries"], key=lambda k: self.iso2sec(k["startedDateTime"]))
 		# sortedentries = har["log"]["entries"]
-		# print("sortedentries:", sortedentries)
+		# self.debugmsg(9, "sortedentries:", sortedentries)
 
 		e0time = self.iso2sec(sortedentries[0]["startedDateTime"])-0.002
+		self.debugmsg(9, "e0time:", e0time)
 
 		i = 0
+		j = 0
 		for page in sortedpages:
 			# pagetime = int(iso2sec(page["startedDateTime"]))
 			# if i+1 == len(sortedpages):
@@ -1269,30 +1382,38 @@ class har2rfreq():
 			# else:
 				# nextpagetime = int(iso2sec(sortedpages[i+1]["startedDateTime"]))
 			pagetime = self.iso2sec(page["startedDateTime"])-0.002
+			self.debugmsg(9, "pagetime:", pagetime)
 			if i==0 and pagetime>e0time:
 				pagetime=e0time
+				self.debugmsg(9, "pagetime:", pagetime)
 			if i+1 == len(sortedpages):
 				nextpagetime = datetime.timestamp(datetime.now())
 			else:
 				nextpagetime = self.iso2sec(sortedpages[i+1]["startedDateTime"])-0.002
 
 			kwname = kwbname + " " + page["id"]
-			print(kwname, "pagetime:", pagetime, "	nextpagetime:", nextpagetime)
+			self.debugmsg(9, kwname, "pagetime:", pagetime, "	nextpagetime:", nextpagetime)
 
 			self.add_keyword(kwname, page["title"])
 
 			for e in sortedentries:
-				# print(e)
-				print("e URL:", e["request"]["method"], e["request"]["url"])
+				# self.debugmsg(9, e)
+				self.debugmsg(5, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j)
+				self.debugmsg(7, "e URL:", e["request"]["method"], e["request"]["url"])
 
 				# etime = int(iso2sec(e["startedDateTime"]))
 				etime = self.iso2sec(e["startedDateTime"])
-				print("e time:", etime)
+				self.debugmsg(9, "e time:", etime)
 				if etime >= pagetime and etime < nextpagetime:
-					# print("etime:", etime)
+					# self.debugmsg(9, "etime:", etime)
 					self.process_entry(e)
 
-			i +=1
+
+				j += 1
+				# if j>37:
+				# 	break
+
+			i += 1
 
 
 
