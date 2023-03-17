@@ -199,17 +199,19 @@ class har2rfreq():
 
 		self.debugmsg(6, "Construct list of various ways value might be provided")
 
-		searchvals = [value]
+		searchvals = {}
+		searchvals[value] = []
 
 		if value != value.strip():
-			searchvals.append(value.strip())
+			searchvals[value.strip()] = []
 
 		for decoder in self.decoders.keys():
 			self.debugmsg(8, "decoder:", decoder)
 			decval = eval(decoder +"(value)")
 			self.debugmsg(8, "decval:", decval)
 			if decval != value:
-				searchvals.append(decval)
+				searchvals[decval] = []
+				searchvals[decval].append(decoder)
 				# converters_needed.append(self.decoders[decval]["robotencode"])
 
 		for encoder in self.encoders.keys():
@@ -217,7 +219,8 @@ class har2rfreq():
 			evcval = eval(encoder +"(value)")
 			self.debugmsg(8, "evcval:", evcval)
 			if evcval != value:
-				searchvals.append(evcval)
+				searchvals[evcval] = []
+				searchvals[evcval].append(encoder)
 				# converters_needed.append(self.encoders[encoder]["robotdecode"])
 
 
@@ -229,7 +232,6 @@ class har2rfreq():
 
 		self.debugmsg(8, "searchvals:", searchvals)
 		self.debugmsg(8, "searchkeys:", searchkeys)
-		self.debugmsg(8, "converters_needed:", converters_needed)
 
 		for searchkey in searchkeys:
 			self.debugmsg(8, "searchkey:", searchkey)
@@ -265,7 +267,7 @@ class har2rfreq():
 						return newvalue
 
 
-		for searchval in searchvals:
+		for searchval in searchvals.keys():
 			self.debugmsg(8, "searchval:", searchval)
 
 

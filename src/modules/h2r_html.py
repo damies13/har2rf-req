@@ -12,24 +12,24 @@ class h2r_html():
 		html = "self.h2r_html.html_encode"
 		if html not in self.parent.encoders:
 			self.parent.encoders[html] = {}
-			self.parent.encoders[html]["robotdecode"] = "self.h2r_html.html_robotdecode"
+			self.parent.encoders[html]["robottranscode"] = "self.h2r_html.html_robotdecode"
 
 		htmlX = "self.h2r_html.htmlX_encode"
 		if htmlX not in self.parent.encoders:
 			self.parent.encoders[htmlX] = {}
-			self.parent.encoders[htmlX]["robotdecode"] = "self.h2r_html.htmlX_robotdecode"
+			self.parent.encoders[htmlX]["robottranscode"] = "self.h2r_html.htmlX_robotdecode"
 
 		htmlx = "self.h2r_html.htmlx_encode"
 		if htmlx not in self.parent.encoders:
 			self.parent.encoders[htmlx] = {}
-			self.parent.encoders[htmlx]["robotdecode"] = "self.h2r_html.htmlX_robotdecode"
+			self.parent.encoders[htmlx]["robottranscode"] = "self.h2r_html.htmlX_robotdecode"
 
 
 
 		html = "self.h2r_html.html_decode"
 		if html not in self.parent.encoders:
 			self.parent.decoders[html] = {}
-			self.parent.decoders[html]["robotencode"] = "self.h2r_html.html_robotencode"
+			self.parent.decoders[html]["robottranscode"] = "self.h2r_html.html_robotencode"
 
 
 
