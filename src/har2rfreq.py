@@ -11,6 +11,7 @@ import html
 
 
 import modules.h2r_html
+import modules.h2r_base
 
 
 class har2rfreq():
@@ -22,6 +23,8 @@ class har2rfreq():
 
 	encoders = {}
 	decoders = {}
+	parsers = {}
+	parserdata = {}
 
 	debuglvl = 8
 
@@ -45,6 +48,7 @@ class har2rfreq():
 		self.process_files()
 
 	def init_modules(self):
+		self.h2r_base = modules.h2r_base.h2r_base(self)
 		self.h2r_html = modules.h2r_html.h2r_html(self)
 
 	def display_help(self):
@@ -192,8 +196,16 @@ class har2rfreq():
 		self.debugmsg(6, "")
 		self.debugmsg(6, "key:", key, "	value:", value)
 
+		# reset parserdata
+		self.parserdata = {}
+		self.parserdata["value"] = value
+		self.parserdata["key"] = key
+
+
 		kwname = self.workingdata["keyword"]
 		self.debugmsg(8, "kwname:", kwname)
+		self.parserdata["kwname"] = kwname
+		self.parserdata["ekwname"] = None
 
 		if len(value.strip())<1:
 			return "${EMPTY}"
@@ -241,115 +253,24 @@ class har2rfreq():
 		self.debugmsg(8, "searchvals:", searchvals)
 		self.debugmsg(8, "searchkeys:", searchkeys)
 
-		for searchkey in searchkeys:
-			self.debugmsg(8, "searchkey:", searchkey)
+		self.parserdata["searchvals"] = searchvals
+		self.parserdata["searchkeys"] = searchkeys
 
-			self.debugmsg(6, "has key already been found")
+		if "paramnames" not in self.workingdata:
+			self.workingdata["paramnames"] = {}
+		if "paramvalues" not in self.workingdata:
+			self.workingdata["paramvalues"] = {}
 
-			if "paramnames" not in self.workingdata:
-				self.workingdata["paramnames"] = {}
-			if "paramvalues" not in self.workingdata:
-				self.workingdata["paramvalues"] = {}
-
-			possiblekeys = ["${"+searchkey+"}"]
-			possiblekeyn = [searchkey]
-			i = 1
-			newname = searchkey+"_"+str(i)
-			while newname in self.workingdata["paramnames"]:
-				possiblekeys.append("${"+newname+"}")
-				possiblekeyn.append(newname)
-				i += 1
-				newname = searchkey+"_"+str(i)
-				# self.debugmsg(9, "newname:", newname)
-			self.debugmsg(8, "possiblekeys:", possiblekeys)
-
-			if searchkey in self.workingdata["paramnames"]:
-				for keyi in possiblekeyn:
-					self.debugmsg(8, "keyi:", keyi, "	oval: ", self.workingdata["paramnames"][keyi]["oval"], " <=> ", value)
-					if self.workingdata["paramnames"][keyi]["oval"] == value:
-						newvalue = self.workingdata["paramnames"][keyi]["nval"]
-						return newvalue
-					self.debugmsg(8, "keyi:", keyi, "	oval: ", self.workingdata["paramnames"][keyi]["oval"], " <=> ", value)
-					if self.workingdata["paramnames"][keyi]["oval"] == value:
-						newvalue = self.workingdata["paramnames"][keyi]["nval"]
-						return newvalue
+		for parser in self.parsers.keys():
+			self.debugmsg(8, "parser:", parser)
+			retvalue = eval(parser +"()")
+			self.debugmsg(8, "parser:", parser)
+			if retvalue is not None:
+				return retvalue
 
 
 		for searchval in searchvals.keys():
 			self.debugmsg(8, "searchval:", searchval)
-
-
-			self.debugmsg(6, "has value already been found")
-
-			if searchval in self.workingdata["paramvalues"]:
-				self.debugmsg(8, "value key:", self.workingdata["paramvalues"][searchval], " <=> ", possiblekeys)
-				if self.workingdata["paramvalues"][searchval] in possiblekeys:
-					newvalue = self.workingdata["paramvalues"][searchval]
-					return newvalue
-
-
-
-			self.debugmsg(6, "is value timestamp now")
-
-			ec = self.workingdata["entrycount"]
-			entry = self.workingdata["har"]["log"]["entries"][ec]
-			startedDateTime = entry["startedDateTime"]
-			reqtime = dateutil.parser.isoparse(startedDateTime)
-
-			if newvalue == value and value.isdigit() and len(value)>9:
-				# check if it was the timestamp at the time of the request in the har file
-				sseconds = value[0:10]
-				# self.debugmsg(9, "sseconds:", sseconds, "	value:", value)
-				intvar = int(sseconds)
-				# self.debugmsg(9, "intime:", intime, "	intvar:", intvar)
-
-				cseconds = datetime.timestamp(reqtime)
-
-				timediff = abs(cseconds - intvar)
-				self.debugmsg(8, "timediff:", timediff, "	intvar:", intvar, "	cseconds:", cseconds)
-
-				if timediff < 60:
-					line = "${TS}=		Get Time		epoch"
-					self.outdata["*** Keywords ***"][kwname].append(line)
-					newvalue = "${TS}"
-					return newvalue
-
-
-			self.debugmsg(6, "is value request's date")
-
-			timelst = {}
-			timelst[reqtime.strftime("%Y-%m-%d")] = "%Y-%m-%d"  # ISO Date
-			timelst[reqtime.strftime("%d/%m/%Y")] = "%d/%m/%Y"  # UK Date
-			timelst[reqtime.strftime("%d.%m.%Y")] = "%d.%m.%Y"  # EU Date
-			timelst[reqtime.strftime("%d-%m-%Y")] = "%d-%m-%Y"  # Other Date
-			timelst[reqtime.strftime("%m/%d/%Y")] = "%m/%d/%Y"  # US Date
-			timelst[reqtime.strftime("%m-%d-%Y")] = "%m-%d-%Y"  # US Date -
-			timelst[reqtime.strftime("%m.%d.%Y")] = "%m.%d.%Y"  # US Date .
-			timelst[reqtime.strftime("%H:%M:%S")] = "%H:%M:%S"  # Time H:M:S
-			timelst[reqtime.strftime("%H:%M")] = "%H:%M"  # Time H:M:S
-
-			if searchval in list(timelst.keys()):
-				sformat = timelst[searchval]
-				self.debugmsg(8, "sformat:", sformat)
-
-				vformat = sformat.replace("%Y", "${yyyy}").replace("%m", "${mm}").replace("%d", "${dd}").replace("%H", "${hh}").replace("%M", "${mm}").replace("%S", "${ss}")
-				self.debugmsg(8, "vformat:", vformat)
-				# ${yyyy} 	${mm} 	${dd} = 	Get Time 	year,month,day
-				line = "${yyyy} 	${mm} 	${dd} 	${hh} 	${mm} 	${ss}= 	Get Time 	year,month,day,hour,min,sec"
-				self.outdata["*** Keywords ***"][kwname].append(line)
-
-				line = "${"+key+"}=		Set Variable		" + vformat
-				self.outdata["*** Keywords ***"][kwname].append(line)
-
-				line = "Set Global Variable		${"+key+"} 	${"+key+"}"
-				self.outdata["*** Keywords ***"][kwname].append(line)
-
-				newvalue = "${"+key+"}"
-				return newvalue
-
-
-
-
 
 
 			self.debugmsg(6, "Start looking in pervious requests")
@@ -373,7 +294,7 @@ class har2rfreq():
 
 							newkey = self.saveparam(key, searchval)
 
-							line = "Set Global Variable		${"+newkey+"}	${resp_"+str(resp)+".headers[\""+hkey+"\"]}"
+							line = "Set Global Variable 	${"+newkey+"}	${resp_"+str(resp)+".headers[\""+hkey+"\"]}"
 
 							self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
@@ -388,12 +309,12 @@ class har2rfreq():
 								# no need to find rbound
 								newkey = self.saveparam(key, searchval)
 
-								line = "${"+newkey+"}=		Fetch From Right		${resp_" + str(resp) + ".headers[\"" + h["name"] + "\"]}		" + lbound
+								line = "${"+newkey+"}= 	Fetch From Right 	${resp_" + str(resp) + ".headers[\"" + h["name"] + "\"]} 	" + lbound
 								self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
 								estep += 1
 
-								line = "Set Global Variable		${"+newkey+"}	${"+newkey+"}"
+								line = "Set Global Variable 	${"+newkey+"}	${"+newkey+"}"
 								self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
 								newvalue = "${"+newkey+"}"
@@ -402,12 +323,12 @@ class har2rfreq():
 							if len(lbound)>0 and len(rbound)>0:
 								newkey = self.saveparam(key, searchval)
 
-								line = "${"+newkey+"}=		Get Substring LRB		${resp_" + str(resp) + ".headers[\"" + h["name"] + "\"]}		"+lbound+"		"+rbound
+								line = "${"+newkey+"}= 	Get Substring LRB 	${resp_" + str(resp) + ".headers[\"" + h["name"] + "\"]} 	"+lbound+" 	"+rbound
 								self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
 								estep += 1
 
-								line = "Set Global Variable		${"+newkey+"}	${"+newkey+"}"
+								line = "Set Global Variable 	${"+newkey+"}	${"+newkey+"}"
 								self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
 								newvalue = "${"+newkey+"}"
@@ -425,7 +346,7 @@ class har2rfreq():
 
 							newkey = self.saveparam(key, searchval)
 
-							line = "Set Global Variable		${"+newkey+"}	${resp_"+str(resp)+".cookies[\""+ckey+"\"]}"
+							line = "Set Global Variable 	${"+newkey+"}	${resp_"+str(resp)+".cookies[\""+ckey+"\"]}"
 
 							self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
@@ -493,7 +414,7 @@ class har2rfreq():
 												goffset = 1
 												if match == searchval:
 
-													line = "${"+newkey+"}=		Get Substring LRB		${resp_"+str(resp)+".text}		"+prefix+"		"+suffix
+													line = "${"+newkey+"}= 	Get Substring LRB 	${resp_"+str(resp)+".text} 	"+prefix+" 	"+suffix
 													self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
 
@@ -511,17 +432,17 @@ class har2rfreq():
 													reprefix = re.escape(prefix).replace('"', r'\"').replace("\\", r"\\")
 													resuffix = re.escape(suffix).replace('"', r'\"').replace("\\", r"\\")
 
-													# line = "${regx_match}=		Get Lines Matching Regexp		${resp_"+str(resp)+".text}		"+reprefix+"(.*?)"+resuffix
-													line = "${regx_match}=		evaluate		re.search(\"" + reprefix + "(.*?)" + resuffix + "\", \"\"\"${resp_"+str(resp)+".text}\"\"\").group(0)		re"
+													# line = "${regx_match}= 	Get Lines Matching Regexp 	${resp_"+str(resp)+".text} 	"+reprefix+"(.*?)"+resuffix
+													line = "${regx_match}= 	evaluate 	re.search(\"" + reprefix + "(.*?)" + resuffix + "\", \"\"\"${resp_"+str(resp)+".text}\"\"\").group(0) 	re"
 
 													self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
-													line = "${"+newkey+"}=		Get Substring LRB		${regx_match}		"+prefix+"		"+suffix
+													line = "${"+newkey+"}= 	Get Substring LRB 	${regx_match} 	"+prefix+" 	"+suffix
 													self.outdata["*** Keywords ***"][ekwname].insert(estep+1, line)
 
 													goffset += 1
 
 
-												line = "Set Global Variable		${"+newkey+"}"
+												line = "Set Global Variable 	${"+newkey+"}"
 												self.outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
 
 
@@ -549,7 +470,7 @@ class har2rfreq():
 
 			newkey = self.saveparam(key, value)
 
-			line = "${"+newkey+"}		"+value
+			line = "${"+newkey+"} 	"+value
 			self.outdata["*** Variables ***"].append(line)
 
 			newvalue = "${"+newkey+"}"
@@ -644,7 +565,7 @@ class har2rfreq():
 				if h["name"].lower() not in specialh and h["name"][0] != ":":
 					# hdrs[h["name"]] = h["value"]
 					value = self.find_variable(h["name"], h["value"])
-					hdrs += "	" + h["name"] + "=" + value
+					hdrs += " 	" + h["name"] + "=" + value
 
 				if h["name"].lower() == "cookie":
 					clst = h["value"].split(";")
@@ -654,15 +575,15 @@ class har2rfreq():
 						if citm[0].strip() not in ["_ga", "_gid"]:   # don't bother sending Google analytics cookies
 							key = citm[0].strip()
 							value = self.self.find_variable(key, citm[1].strip())
-							cook += "	" + key + "=" + value
+							cook += " 	" + key + "=" + value
 
-			line = "&{Headers}=		Create dictionary" + hdrs
+			line = "&{Headers}= 	Create dictionary" + hdrs
 			self.outdata["*** Keywords ***"][kwname].append(line)
 
 			# line = "Log 	${Headers}"
 			# self.outdata["*** Keywords ***"][kwname].append(line)
 
-			line = "&{Cookies}=		Create dictionary" + cook
+			line = "&{Cookies}= 	Create dictionary" + cook
 			self.outdata["*** Keywords ***"][kwname].append(line)
 
 			# line = "Log 	${Cookies}"
@@ -683,11 +604,11 @@ class har2rfreq():
 			if h["name"].lower() not in specialh and h["name"][0] != ":":
 				# hdrs[h["name"]] = h["value"]
 				value = self.find_variable(h["name"], h["value"])
-				hdrs += "	" + h["name"] + "=" + value
+				hdrs += " 	" + h["name"] + "=" + value
 		if len(hdrs)>0:
-			line = "&{Req_Headers}=		Create dictionary" + hdrs
+			line = "&{Req_Headers}= 	Create dictionary" + hdrs
 			self.outdata["*** Keywords ***"][kwname].append(line)
-			argdata += "	" + "headers=${Req_Headers}"
+			argdata += " 	" + "headers=${Req_Headers}"
 
 
 		# GET
@@ -696,12 +617,12 @@ class har2rfreq():
 		if entry["request"]["method"] == "GET":
 			statuscode = entry["response"]["status"]
 			if statuscode == 302:
-				argdata += "	" + "expected_status={}".format(statuscode)
-				argdata += "	" + "allow_redirects=${False}"
+				argdata += " 	" + "expected_status={}".format(statuscode)
+				argdata += " 	" + "allow_redirects=${False}"
 				# if "redirecturl" not in self.workingdata:
 					# self.workingdata["redirecturl"] = entry["request"]["url"].replace(self.workingdata["baseurl"], "")
 			else:
-				argdata += "	" + "expected_status={}".format(statuscode)
+				argdata += " 	" + "expected_status={}".format(statuscode)
 
 
 			if "redirecturl" in self.workingdata:
@@ -727,15 +648,15 @@ class har2rfreq():
 							newvalue = self.find_variable("NoKey", p)
 							parrout.append("=".join([key, newvalue]))
 
-					params = "	".join(parrout)
+					params = " 	".join(parrout)
 
 					dname = "params_{}".format(ec)
-					line = "&{"+dname+"}=		Create dictionary	" + params
+					line = "&{"+dname+"}= 	Create dictionary 	" + params
 					self.outdata["*** Keywords ***"][kwname].append(line)
-					argdata += "	" + "params=${"+dname+"}"
+					argdata += " 	" + "params=${"+dname+"}"
 
 				resp = "resp_{}".format(ec)
-				line = "${"+resp+"}=		GET On Session		" + self.workingdata["session"] + "		url=" + path + argdata
+				line = "${"+resp+"}= 	GET On Session 	" + self.workingdata["session"] + " 	url=" + path + argdata
 				self.outdata["*** Keywords ***"][kwname].append(line)
 
 				# line = "Log 	${"+resp+".text}"
@@ -763,12 +684,12 @@ class har2rfreq():
 					newvalue = self.find_variable(key, value)
 					parrout.append("=".join([key, newvalue]))
 
-				params = "	".join(parrout)
+				params = " 	".join(parrout)
 
 				dname = "params_{}".format(ec)
-				line = "&{"+dname+"}=		Create dictionary	" + params
+				line = "&{"+dname+"}= 	Create dictionary	" + params
 				self.outdata["*** Keywords ***"][kwname].append(line)
-				argdata += "	" + "params=${"+dname+"}"
+				argdata += " 	" + "params=${"+dname+"}"
 
 
 
@@ -780,12 +701,12 @@ class har2rfreq():
 					dictdata = ""
 					for param in pd["params"]:
 						newvalue = self.find_variable(param["name"], param["value"])
-						dictdata += "	" + param["name"] + "=" + newvalue
+						dictdata += " 	" + param["name"] + "=" + newvalue
 
 					dname = "postdata_{}".format(ec)
-					line = "&{"+dname+"}=		Create dictionary" + dictdata
+					line = "&{"+dname+"}= 	Create dictionary" + dictdata
 					self.outdata["*** Keywords ***"][kwname].append(line)
-					argdata += "	" + "data=${"+dname+"}"
+					argdata += " 	" + "data=${"+dname+"}"
 
 				if pd_try and "text" in pd and pd["text"][0] == "{":
 					pd_try = False
@@ -794,21 +715,21 @@ class har2rfreq():
 					paramname, lines = self.process_dict(dname, jsondata)
 					self.debugmsg(8, "paramname:", paramname, "	paramlst:", paramlst)
 					self.outdata["*** Keywords ***"][kwname].extend(lines)
-					argdata += "	" + "json="+paramname
+					argdata += " 	" + "json="+paramname
 
 
 			statuscode = entry["response"]["status"]
 			if statuscode == 302:
-				argdata += "	" + "expected_status={}".format(statuscode)
-				argdata += "	" + "allow_redirects=${False}"
+				argdata += " 	" + "expected_status={}".format(statuscode)
+				argdata += " 	" + "allow_redirects=${False}"
 				# if "redirecturl" not in self.workingdata:
 					# self.workingdata["redirecturl"] = entry["request"]["url"].replace(self.workingdata["baseurl"], "")
 			else:
-				argdata += "	" + "expected_status={}".format(statuscode)
+				argdata += " 	" + "expected_status={}".format(statuscode)
 
 
 			resp = "resp_{}".format(ec)
-			line = "${"+resp+"}=		POST On Session		" + self.workingdata["session"] + "		url=" + path + argdata
+			line = "${"+resp+"}= 	POST On Session 	" + self.workingdata["session"] + " 	url=" + path + argdata
 			self.outdata["*** Keywords ***"][kwname].append(line)
 			# line = "Log 	${"+resp+".text}"
 			# self.outdata["*** Keywords ***"][kwname].append(line)
@@ -848,11 +769,11 @@ class har2rfreq():
 				newvalue, paramlst = self.process_dict(dkeyname, value)
 				dictconstr.extend(paramlst)
 
-			dicttems = dicttems + "		" + dkey + "=" + newvalue
+			dicttems = dicttems + " 	" + dkey + "=" + newvalue
 
 
 		self.debugmsg(9, "self.process_dict dictdata: ", dictdata)
-		dictconstr.append("&{" + keyname + "}=		Create Dictionary" + dicttems)
+		dictconstr.append("&{" + keyname + "}= 	Create Dictionary" + dicttems)
 		self.debugmsg(9, "new robot line:",dictconstr[-1])
 
 		return (dictparam, dictconstr)
@@ -879,9 +800,9 @@ class har2rfreq():
 				newvalue, paramlst = self.process_dict(skey, svalue)
 				dictconstr.extend(paramlst)
 
-			listitems = listitems + "		" + newvalue
+			listitems = listitems + " 	" + newvalue
 
-		dictconstr.append("@{" + keyname + "}=		Create List" + listitems)
+		dictconstr.append("@{" + keyname + "}= 	Create List" + listitems)
 		self.debugmsg(9, "new robot line:",dictconstr[-1])
 
 		return (dictparam, dictconstr)
