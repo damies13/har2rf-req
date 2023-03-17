@@ -20,7 +20,10 @@ class har2rfreq():
 	outdata = {}
 	workingdata = {}
 
-	debuglvl = 6
+	encoders = {}
+	decoders = {}
+
+	debuglvl = 8
 
 	def __init__(self):
 		# self.debugmsg(9, sys.argv)
@@ -185,6 +188,131 @@ class har2rfreq():
 		return -1
 
 	def find_variable(self, key, value):
+
+		self.debugmsg(6, "")
+		self.debugmsg(6, "key:", key, "	value:", value)
+
+		if len(value.strip())<1:
+			return "${EMPTY}"
+
+		newvalue = value
+
+		self.debugmsg(6, "Construct list of various ways value might be provided")
+
+		searchvals = [value]
+
+		if value != value.strip():
+			searchvals.append(value.strip())
+
+		for decoder in self.decoders.keys():
+			self.debugmsg(8, "decoder:", decoder)
+			decval = eval(decoder +"(value)")
+			self.debugmsg(8, "decval:", decval)
+			if decval != value:
+				searchvals.append(decval)
+				# converters_needed.append(self.decoders[decval]["robotencode"])
+
+		for encoder in self.encoders.keys():
+			self.debugmsg(8, "encoder:", encoder)
+			evcval = eval(encoder +"(value)")
+			self.debugmsg(8, "evcval:", evcval)
+			if evcval != value:
+				searchvals.append(evcval)
+				# converters_needed.append(self.encoders[encoder]["robotdecode"])
+
+
+		searchkeys = [key]
+
+		if key[0] == '_':
+			searchkeys.append(key[1:])
+
+
+		self.debugmsg(8, "searchvals:", searchvals)
+		self.debugmsg(8, "searchkeys:", searchkeys)
+		self.debugmsg(8, "converters_needed:", converters_needed)
+
+		for searchkey in searchkeys:
+			self.debugmsg(8, "searchkey:", searchkey)
+
+			self.debugmsg(6, "has key already been found")
+
+			if "paramnames" not in self.workingdata:
+				self.workingdata["paramnames"] = {}
+			if "paramvalues" not in self.workingdata:
+				self.workingdata["paramvalues"] = {}
+
+			possiblekeys = ["${"+searchkey+"}"]
+			possiblekeyn = [searchkey]
+			i = 1
+			newname = searchkey+"_"+str(i)
+			while newname in self.workingdata["paramnames"]:
+				possiblekeys.append("${"+newname+"}")
+				possiblekeyn.append(newname)
+				i += 1
+				newname = searchkey+"_"+str(i)
+				# self.debugmsg(9, "newname:", newname)
+			self.debugmsg(8, "possiblekeys:", possiblekeys)
+
+			if searchkey in self.workingdata["paramnames"]:
+				for keyi in possiblekeyn:
+					self.debugmsg(8, "keyi:", keyi, "	oval: ", self.workingdata["paramnames"][keyi]["oval"], " <=> ", value)
+					if self.workingdata["paramnames"][keyi]["oval"] == value:
+						newvalue = self.workingdata["paramnames"][keyi]["nval"]
+						return newvalue
+					self.debugmsg(8, "keyi:", keyi, "	oval: ", self.workingdata["paramnames"][keyi]["oval"], " <=> ", value)
+					if self.workingdata["paramnames"][keyi]["oval"] == value:
+						newvalue = self.workingdata["paramnames"][keyi]["nval"]
+						return newvalue
+
+
+		for searchval in searchvals:
+			self.debugmsg(8, "searchval:", searchval)
+
+
+			self.debugmsg(6, "has value already been found")
+
+			if searchval in self.workingdata["paramvalues"]:
+				self.debugmsg(8, "value key:", self.workingdata["paramvalues"][searchval], " <=> ", possiblekeys)
+				if self.workingdata["paramvalues"][searchval] in possiblekeys:
+					newvalue = self.workingdata["paramvalues"][searchval]
+					return newvalue
+
+
+
+			self.debugmsg(6, "Start looking in pervious requests")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		if newvalue == value:
+			self.debugmsg(6, "Last resort if value didn't exist anywhere")
+
+			newkey = self.saveparam(key, value)
+
+			line = "${"+newkey+"}		"+value
+			self.outdata["*** Variables ***"].append(line)
+
+			newvalue = "${"+newkey+"}"
+			self.debugmsg(8, "last resort", newkey, newvalue)
+			return newvalue
+
+
+		return newvalue
+
+
+	def find_variable_old(self, key, value):
 
 		self.debugmsg(6, "")
 		self.debugmsg(6, "key:", key, "	value:", value)
@@ -1410,8 +1538,8 @@ class har2rfreq():
 
 
 				j += 1
-				# if j>37:
-				# 	break
+				if j>2:
+					break
 
 			i += 1
 
