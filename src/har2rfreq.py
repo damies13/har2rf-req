@@ -192,6 +192,9 @@ class har2rfreq():
 		self.debugmsg(6, "")
 		self.debugmsg(6, "key:", key, "	value:", value)
 
+		kwname = self.workingdata["keyword"]
+		self.debugmsg(8, "kwname:", kwname)
+
 		if len(value.strip())<1:
 			return "${EMPTY}"
 
@@ -281,250 +284,103 @@ class har2rfreq():
 
 
 
-			self.debugmsg(6, "Start looking in pervious requests")
+			self.debugmsg(6, "is value timestamp now")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		if newvalue == value:
-			self.debugmsg(6, "Last resort if value didn't exist anywhere")
-
-			newkey = self.saveparam(key, value)
-
-			line = "${"+newkey+"}		"+value
-			self.outdata["*** Variables ***"].append(line)
-
-			newvalue = "${"+newkey+"}"
-			self.debugmsg(8, "last resort", newkey, newvalue)
-			return newvalue
-
-
-		return newvalue
-
-
-	def find_variable_old(self, key, value):
-
-		self.debugmsg(6, "")
-		self.debugmsg(6, "key:", key, "	value:", value)
-
-		if value.strip() != value:
-			value = value.strip()
-			self.debugmsg(6, "key:", key, "	value:", value)
-
-		newvalue = value
-		decvalue = self.decode_value(value)
-		kwname = self.workingdata["keyword"]
-
-		if len(value.strip())<1:
-			return "${EMPTY}"
-
-		# self.debugmsg(9, "self.find_variable	key:", key, "	value:", value)
-
-		self.debugmsg(6, "has value already been found")
-
-		if "paramnames" not in self.workingdata:
-			self.workingdata["paramnames"] = {}
-		if "paramvalues" not in self.workingdata:
-			self.workingdata["paramvalues"] = {}
-
-		possiblekeys = ["${"+key+"}"]
-		possiblekeyn = [key]
-		i = 1
-		newname = key+"_"+str(i)
-		# self.debugmsg(9, "newname:", newname, self.workingdata["paramnames"])
-		while newname in self.workingdata["paramnames"]:
-			possiblekeys.append("${"+newname+"}")
-			possiblekeyn.append(newname)
-			i += 1
-			newname = key+"_"+str(i)
-			# self.debugmsg(9, "newname:", newname)
-		self.debugmsg(8, "possiblekeys:", possiblekeys)
-
-		if decvalue in self.workingdata["paramvalues"]:
-			self.debugmsg(8, "decvalue key:", self.workingdata["paramvalues"][decvalue], " <=> ", possiblekeys)
-			if self.workingdata["paramvalues"][decvalue] in possiblekeys:
-				newvalue = self.workingdata["paramvalues"][decvalue]
-				return newvalue
-
-		# self.debugmsg(9, "self.find_variable	paramvalues")
-		# self.debugmsg(9, "value:", value, self.workingdata["paramvalues"].keys())
-		if newvalue == value and value in self.workingdata["paramvalues"]:
-			# self.debugmsg(9, "value:", value, "	paramvalues:", self.workingdata["paramvalues"][value])
-			self.debugmsg(8, "value key:", self.workingdata["paramvalues"][value], " <=> ", possiblekeys)
-			if self.workingdata["paramvalues"][value] in possiblekeys:
-				newvalue = self.workingdata["paramvalues"][value]
-				return newvalue
-
-		# self.debugmsg(9, "self.find_variable	paramnames")
-		# self.debugmsg(9, "value:", value, self.workingdata["paramnames"].keys())
-		if newvalue == value and key in self.workingdata["paramnames"]:
-			# self.debugmsg(9, "key:", key, "	paramnames:", self.workingdata["paramnames"][key])
-			for keyi in possiblekeyn:
-				self.debugmsg(8, "keyi:", keyi, "	oval: ", self.workingdata["paramnames"][keyi]["oval"], " <=> ", decvalue)
-				if self.workingdata["paramnames"][keyi]["oval"] == decvalue:
-					newvalue = self.workingdata["paramnames"][keyi]["nval"]
-					return newvalue
-				self.debugmsg(8, "keyi:", keyi, "	oval: ", self.workingdata["paramnames"][keyi]["oval"], " <=> ", value)
-				if self.workingdata["paramnames"][keyi]["oval"] == value:
-					newvalue = self.workingdata["paramnames"][keyi]["nval"]
-					return newvalue
-
-		self.debugmsg(6, "is value timestamp now")
-		if newvalue == value and value.isdigit() and len(value)>9:
-			# check if it was the timestamp at the time of the request in the har file
-			sseconds = value[0:10]
-			# self.debugmsg(9, "sseconds:", sseconds, "	value:", value)
-			intvar = int(sseconds)
-			# intime = datetime.fromtimestamp(intvar)
-			# self.debugmsg(9, "intime:", intime, "	intvar:", intvar)
 			ec = self.workingdata["entrycount"]
-			# self.debugmsg(9, "ec:", ec)
 			entry = self.workingdata["har"]["log"]["entries"][ec]
 			startedDateTime = entry["startedDateTime"]
-			# self.debugmsg(8, "startedDateTime:", startedDateTime, "	intvar:", intvar)
 			reqtime = dateutil.parser.isoparse(startedDateTime)
-			# self.debugmsg(8, "reqtime:", reqtime)
-			cseconds = datetime.timestamp(reqtime)
-			# timediff = (reqtime - intime).total_seconds()
-			timediff = abs(cseconds - intvar)
-			self.debugmsg(8, "timediff:", timediff, "	intvar:", intvar, "	cseconds:", cseconds)
-			# self.debugmsg(9, "timediff:", timediff)
-			if timediff < 60:
-				line = "${TS}=		Get Time		epoch"
+
+			if newvalue == value and value.isdigit() and len(value)>9:
+				# check if it was the timestamp at the time of the request in the har file
+				sseconds = value[0:10]
+				# self.debugmsg(9, "sseconds:", sseconds, "	value:", value)
+				intvar = int(sseconds)
+				# self.debugmsg(9, "intime:", intime, "	intvar:", intvar)
+
+				cseconds = datetime.timestamp(reqtime)
+
+				timediff = abs(cseconds - intvar)
+				self.debugmsg(8, "timediff:", timediff, "	intvar:", intvar, "	cseconds:", cseconds)
+
+				if timediff < 60:
+					line = "${TS}=		Get Time		epoch"
+					self.outdata["*** Keywords ***"][kwname].append(line)
+					newvalue = "${TS}"
+					return newvalue
+
+
+			self.debugmsg(6, "is value request's date")
+
+			timelst = {}
+			timelst[reqtime.strftime("%Y-%m-%d")] = "%Y-%m-%d"  # ISO Date
+			timelst[reqtime.strftime("%d/%m/%Y")] = "%d/%m/%Y"  # UK Date
+			timelst[reqtime.strftime("%d.%m.%Y")] = "%d.%m.%Y"  # EU Date
+			timelst[reqtime.strftime("%d-%m-%Y")] = "%d-%m-%Y"  # Other Date
+			timelst[reqtime.strftime("%m/%d/%Y")] = "%m/%d/%Y"  # US Date
+			timelst[reqtime.strftime("%m-%d-%Y")] = "%m-%d-%Y"  # US Date -
+			timelst[reqtime.strftime("%m.%d.%Y")] = "%m.%d.%Y"  # US Date .
+			timelst[reqtime.strftime("%H:%M:%S")] = "%H:%M:%S"  # Time H:M:S
+			timelst[reqtime.strftime("%H:%M")] = "%H:%M"  # Time H:M:S
+
+			if searchval in list(timelst.keys()):
+				sformat = timelst[searchval]
+				self.debugmsg(8, "sformat:", sformat)
+
+				vformat = sformat.replace("%Y", "${yyyy}").replace("%m", "${mm}").replace("%d", "${dd}").replace("%H", "${hh}").replace("%M", "${mm}").replace("%S", "${ss}")
+				self.debugmsg(8, "vformat:", vformat)
+				# ${yyyy} 	${mm} 	${dd} = 	Get Time 	year,month,day
+				line = "${yyyy} 	${mm} 	${dd} 	${hh} 	${mm} 	${ss}= 	Get Time 	year,month,day,hour,min,sec"
 				self.outdata["*** Keywords ***"][kwname].append(line)
-				newvalue = "${TS}"
+
+				line = "${"+key+"}=		Set Variable		" + vformat
+				self.outdata["*** Keywords ***"][kwname].append(line)
+
+				line = "Set Global Variable		${"+key+"} 	${"+key+"}"
+				self.outdata["*** Keywords ***"][kwname].append(line)
+
+				newvalue = "${"+key+"}"
 				return newvalue
 
 
-		self.debugmsg(6, "is value request's date")
-		ec = self.workingdata["entrycount"]
-		# self.debugmsg(9, "ec:", ec)
-		entry = self.workingdata["har"]["log"]["entries"][ec]
-		startedDateTime = entry["startedDateTime"]
-		# self.debugmsg(8, "startedDateTime:", startedDateTime)
-		reqtime = dateutil.parser.isoparse(startedDateTime)
-		# self.debugmsg(8, "reqtime:", reqtime, reqtime.strftime("%Y-%m-%d"))
-		reqlst = {}
-		reqlst[reqtime.strftime("%Y-%m-%d")] = "%Y-%m-%d"  # ISO Date
-		reqlst[reqtime.strftime("%d/%m/%Y")] = "%d/%m/%Y"  # UK Date
-		reqlst[reqtime.strftime("%d.%m.%Y")] = "%d.%m.%Y"  # EU Date
-		reqlst[reqtime.strftime("%d-%m-%Y")] = "%d-%m-%Y"  # Other Date
-		reqlst[reqtime.strftime("%m/%d/%Y")] = "%m/%d/%Y"  # US Date
-		reqlst[reqtime.strftime("%m-%d-%Y")] = "%m-%d-%Y"  # US Date -
-		reqlst[reqtime.strftime("%m.%d.%Y")] = "%m.%d.%Y"  # US Date .
-		if newvalue == value and value in list(reqlst.keys()):
-			sformat = reqlst[value]
-			self.debugmsg(8, "sformat:", sformat)
-
-			vformat = sformat.replace("%Y", "${yyyy}").replace("%m", "${mm}").replace("%d", "${dd}")
-			self.debugmsg(8, "vformat:", vformat)
-			# ${yyyy} 	${mm} 	${dd} = 	Get Time 	year,month,day
-			line = "${yyyy} 	${mm} 	${dd}= 	Get Time 	year,month,day"
-			self.outdata["*** Keywords ***"][kwname].append(line)
-
-			line = "${"+key+"}=		Set Variable		" + vformat
-			self.outdata["*** Keywords ***"][kwname].append(line)
-
-			line = "Set Global Variable		${"+key+"} 	${"+key+"}"
-			self.outdata["*** Keywords ***"][kwname].append(line)
-
-			newvalue = "${"+key+"}"
-			return newvalue
-
-		self.debugmsg(6, "is value today's date")
-		todaylst = {}
-		todaylst[datetime.now().strftime("%Y-%m-%d")] = "%Y-%m-%d"  # ISO Date
-		todaylst[datetime.now().strftime("%d/%m/%Y")] = "%d/%m/%Y"  # UK Date
-		todaylst[datetime.now().strftime("%d.%m.%Y")] = "%d.%m.%Y"  # EU Date
-		todaylst[datetime.now().strftime("%d-%m-%Y")] = "%d-%m-%Y"  # Other Date
-		todaylst[datetime.now().strftime("%m/%d/%Y")] = "%m/%d/%Y"  # US Date
-		todaylst[datetime.now().strftime("%m-%d-%Y")] = "%m-%d-%Y"  # US Date -
-		todaylst[datetime.now().strftime("%m.%d.%Y")] = "%m.%d.%Y"  # US Date .
-		if newvalue == value and value in list(todaylst.keys()):
-			self.debugmsg(6, "value is today's date", value)
-			idx = list(todaylst.keys()).index(value)
-			self.debugmsg(8, "idx", idx, "	todaylst:", todaylst.keys())
-			sformat = todaylst[value]
-			self.debugmsg(8, "sformat:", sformat)
-
-			vformat = sformat.replace("%Y", "${yyyy}").replace("%m", "${mm}").replace("%d", "${dd}")
-			self.debugmsg(8, "vformat:", vformat)
-			# ${yyyy} 	${mm} 	${dd} = 	Get Time 	year,month,day
-			line = "${yyyy} 	${mm} 	${dd} = 	Get Time 	year,month,day"
-			self.outdata["*** Keywords ***"][kwname].append(line)
-
-			line = "${"+key+"}=		Set Variable		" + vformat
-			self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
-
-			line = "Set Global Variable		${"+key+"}	${"+key+"}"
-			self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
-
-			newvalue = "${"+key+"}}"
-			return newvalue
 
 
 
 
-		# self.debugmsg(9, "self.find_variable	history")
-		# search history to try and find it
-		if newvalue == value and "history" in self.workingdata:
-			# self.debugmsg(9, "Searching History")
-			for e in self.workingdata["history"]:
+			self.debugmsg(6, "Start looking in pervious requests")
 
-				resp = e["entrycount"]+1
-				ekwname = e["kwname"]
-				estep = self.find_estep(resp, ekwname)
+			# self.debugmsg(9, "self.find_variable	history")
+			# search history to try and find it
+			if "history" in self.workingdata:
+				# self.debugmsg(9, "Searching History")
+				for e in self.workingdata["history"]:
 
-				# check headers
-				self.debugmsg(6, "is value in headers")
-				for h in e["response"]["headers"]:
-					if h["value"] == value and h["name"] == key:
-						# self.debugmsg(9, "found value (",value,") and key (",key,") in header for ", e["request"]["url"])
+					resp = e["entrycount"]+1
+					ekwname = e["kwname"]
+					estep = self.find_estep(resp, ekwname)
 
-						newkey = self.saveparam(key, value)
+					# check headers
+					self.debugmsg(6, "is searchval in headers:", searchval)
+					for h in e["response"]["headers"]:
+						if h["value"] == searchval and h["name"] == key:
+							self.debugmsg(8, "found searchval (",searchval,") and key (",key,") in header for ", e["request"]["url"])
 
-						line = "Set Global Variable		${"+newkey+"}	${resp_"+str(resp)+".headers[\""+key+"\"]}"
+							newkey = self.saveparam(key, searchval)
 
-						self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
+							line = "Set Global Variable		${"+newkey+"}	${resp_"+str(resp)+".headers[\""+key+"\"]}"
 
-						newvalue = "${"+newkey+"}"
-						return newvalue
+							self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
-					searchstrings = []
-					searchstrings.append(value)
-					if value != decvalue:
-						searchstrings.append(decvalue)
-					htmlx = self.h2r_html.htmlx_encode(decvalue)
-					if htmlx != decvalue:
-						searchstrings.append(htmlx)
-					htmlx = self.h2r_html.htmlX_encode(decvalue)
-					if htmlx != decvalue:
-						searchstrings.append(htmlx)
-					urlenc = self.urlencode_value(decvalue)
-					if urlenc != decvalue:
-						searchstrings.append(urlenc)
+							newvalue = "${"+newkey+"}"
+							return newvalue
 
-
-					for searchstring in searchstrings:
-						if newvalue == value and searchstring in h["value"]:
-							lbound, rbound = self.find_in_string(key, searchstring, h["value"])
-							self.debugmsg(9, "lbound:", lbound, "	rbound:", rbound)
+						if searchval in h["value"]:
+							lbound, rbound = self.find_in_string(key, searchval, h["value"])
+							self.debugmsg(8, "lbound:", lbound, "	rbound:", rbound)
 
 							if len(lbound)>0 and len(rbound)==0:
 								# no need to find rbound
-								newkey = self.saveparam(key, searchstring)
+								newkey = self.saveparam(key, searchval)
 
 								line = "${"+newkey+"}=		Fetch From Right		${resp_" + str(resp) + ".headers[\"" + h["name"] + "\"]}		" + lbound
 								self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
@@ -538,7 +394,7 @@ class har2rfreq():
 								return newvalue
 
 							if len(lbound)>0 and len(rbound)>0:
-								newkey = self.saveparam(key, searchstring)
+								newkey = self.saveparam(key, searchval)
 
 								line = "${"+newkey+"}=		Get Substring LRB		${resp_" + str(resp) + ".headers[\"" + h["name"] + "\"]}		"+lbound+"		"+rbound
 								self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
@@ -554,515 +410,136 @@ class har2rfreq():
 
 
 
-				# check Cookies
-				self.debugmsg(6, "is value in cookies")
-				for c in e["response"]["cookies"]:
-					if c["value"] == value and c["name"] == key:
-						# self.debugmsg(9, "found value (",value,") and key (",key,") in cookies for ", e["request"]["url"])
-
-						newkey = self.saveparam(key, value)
-
-						line = "Set Global Variable		${"+newkey+"}	${resp_"+str(resp)+".cookies[\""+key+"\"]}"
-
-						self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
-
-						newvalue = "${"+newkey+"}"
-						return newvalue
-
-				# check body
-				self.debugmsg(6, "is value in response body")
-				if "text" in e["response"]["content"]:
-					self.debugmsg(8, "response content has text")
-
-					# check body for raw value
-					if value in e["response"]["content"]["text"]:
-						self.debugmsg(8, "found value (",value,") in body for ", e["request"]["url"])
-
-						start = 0
-						while newvalue == value and start >=0:
-							self.debugmsg(9, "body:", e["response"]["content"]["text"])
-							self.debugmsg(8, "start:", start, "looking for value:", value)
-							pos = e["response"]["content"]["text"].find(value, start)
-							self.debugmsg(8, "pos:", pos)
-							if pos >=0:
-								offset = len(key)*2 + len(value)*2
-								self.debugmsg(8, "offset:", offset)
-								# excerpt = e["response"]["content"]["text"][(pos-len(key)*2):(pos+len(value)*2)]
-								excerpt = e["response"]["content"]["text"][(pos-len(key)-100):(pos+len(value)+100)]
-								self.debugmsg(8, "excerpt:", excerpt)
-								# excerpt = e["response"]["content"]["text"][(pos-len(key)-offset):(pos+len(value)+offset)]
+					# check Cookies
+					self.debugmsg(6, "is searchval in cookies:", searchval)
+					for c in e["response"]["cookies"]:
+						if c["value"] == searchval and c["name"] == key:
+							self.debugmsg(8, "found searchval (",searchval,") and key (",key,") in cookies for ", e["request"]["url"])
+
+							newkey = self.saveparam(key, searchval)
 
-								srchkey = key
-								if key in ['NoKey']:
-									self.debugmsg(8, "Special case:", key)
-									srchkey = "?"
+							line = "Set Global Variable		${"+newkey+"}	${resp_"+str(resp)+".cookies[\""+key+"\"]}"
 
-								if key[0] == '_':
-									srchkey = key[1:]
+							self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
+							newvalue = "${"+newkey+"}"
+							return newvalue
 
-								if srchkey in excerpt:
-									# self.debugmsg(9, e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
-									self.debugmsg(8, "found key (",srchkey,") in excerpt:", "|{}|".format(excerpt))
+					# check body
+					self.debugmsg(6, "is value in response body")
+					if "text" in e["response"]["content"]:
+						self.debugmsg(8, "response content has text")
 
-									kpos = excerpt.find(srchkey)
-									vpos = excerpt.find(value, kpos)
-									if vpos > kpos:
-										self.debugmsg(8, "kpos:", kpos, "vpos:", vpos)
-										fullprefix = excerpt[0:vpos].strip()
-										prefixarr = fullprefix.splitlines()
-										prefix = prefixarr[-1].strip()
-										self.debugmsg(8, "prefix: |{}|".format(prefix))
-
-										# self.debugmsg(9, "excerpt:", excerpt)
-										self.debugmsg(8, "vpos:", vpos, "	len(value):", len(value), "")
-										spos = vpos+len(value)
-										self.debugmsg(8, "spos:", spos, "	spos+5:", spos+5)
-										#	# suffix = excerpt[spos:5]
-										#	presuffix = excerpt[kpos:(vpos+len(value)+3)]
-										#	self.debugmsg(9, "presuffix: |{}|".format(presuffix))
-										#	# suffix = presuffix[-3:-1]
-										#	suffix = presuffix[-3:len(presuffix)].strip()
-
-										fullsuffix = excerpt[spos:len(excerpt)]
-										suffixarr = fullsuffix.splitlines()
-										suffix = suffixarr[0].strip()
-										self.debugmsg(8, "suffix: |{}|".format(suffix))
-
-
-										# line = "${left}= 	Fetch From Right 	${resp_"+str(resp)+".text} 	"+prefix
-										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"], line)
-										# # self.debugmsg(9, line)
-
-										# line = "${"+key+"}= 	Fetch From Left 	${left} 	"+suffix
-										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"]+1, line)
-										# # self.debugmsg(9, line)
-
-										newkey = self.saveparam(key, value)
-
-										# test match with prefix and suffix works as expected?
-										# find prefix from right
-										ml = e["response"]["content"]["text"].rfind(prefix)+len(prefix)
-										# find suffix from left
-										mr = e["response"]["content"]["text"].find(suffix, ml)
-										# get match
-										match = e["response"]["content"]["text"][ml:mr]
-										# self.debugmsg(9, "ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
-
-										goffset = 1
-										if match == value:
-
-											line = "${"+newkey+"}=		Get Substring LRB		${resp_"+str(resp)+".text}		"+prefix+"		"+suffix
-											self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
-
+						# check body for raw value
+						if searchval in e["response"]["content"]["text"]:
+							self.debugmsg(8, "found searchval (",searchval,") in body for ", e["request"]["url"])
 
-										else:
-											reprefix = re.escape(prefix)
-											resuffix = re.escape(suffix)
+							start = 0
+							while start >=0:
+								self.debugmsg(9, "body:", e["response"]["content"]["text"])
+								self.debugmsg(8, "start:", start, "looking for searchval:", searchval)
+								pos = e["response"]["content"]["text"].find(searchval, start)
+								self.debugmsg(8, "pos:", pos)
+								if pos >=0:
+									offset = len(key)*2 + len(searchval)*2
+									self.debugmsg(8, "offset:", offset)
+									excerpt = e["response"]["content"]["text"][(pos-len(key)-100):(pos+len(searchval)+100)]
+									self.debugmsg(8, "excerpt:", excerpt)
 
-											# test re pattern
-											pattern = reprefix+"(.*?)"+resuffix
-											# e["response"]["content"]["text"]
-											retest = re.search(pattern, e["response"]["content"]["text"]).group(0)
-
-											self.debugmsg(8, "retest:", retest)
+									srchkey = key
+									if key in ['NoKey']:
+										self.debugmsg(8, "Special case:", key)
+										srchkey = "?"
 
-											reprefix = re.escape(prefix).replace('"', r'\"').replace("\\", r"\\")
-											resuffix = re.escape(suffix).replace('"', r'\"').replace("\\", r"\\")
+									if key[0] == '_':
+										srchkey = key[1:]
 
-											# line = "${regx_match}=		Get Lines Matching Regexp		${resp_"+str(resp)+".text}		"+reprefix+"(.*?)"+resuffix
-											line = "${regx_match}=		evaluate		re.search(\"" + reprefix + "(.*?)" + resuffix + "\", \"\"\"${resp_"+str(resp)+".text}\"\"\").group(0)		re"
 
-											self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
-											line = "${"+newkey+"}=		Get Substring LRB		${regx_match}		"+prefix+"		"+suffix
-											self.outdata["*** Keywords ***"][ekwname].insert(estep+1, line)
+									if srchkey in excerpt:
+										self.debugmsg(8, "found key (",srchkey,") in excerpt:", "|{}|".format(excerpt))
 
-											goffset += 1
+										kpos = excerpt.find(srchkey)
+										vpos = excerpt.find(searchval, kpos)
+										if vpos > kpos:
+											self.debugmsg(8, "kpos:", kpos, "vpos:", vpos)
+											fullprefix = excerpt[0:vpos].strip()
+											prefixarr = fullprefix.splitlines()
+											prefix = prefixarr[-1].strip()
+											self.debugmsg(8, "prefix: |{}|".format(prefix))
 
+											self.debugmsg(8, "vpos:", vpos, "	len(searchval):", len(searchval), "")
+											spos = vpos+len(searchval)
+											self.debugmsg(8, "spos:", spos, "	spos+5:", spos+5)
 
-										line = "Set Global Variable		${"+newkey+"}"
-										self.outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
+											fullsuffix = excerpt[spos:len(excerpt)]
+											suffixarr = fullsuffix.splitlines()
+											suffix = suffixarr[0].strip()
+											self.debugmsg(8, "suffix: |{}|".format(suffix))
 
+											newkey = self.saveparam(key, searchval)
 
+											# test match with prefix and suffix works as expected?
+											# find prefix from right
+											ml = e["response"]["content"]["text"].rfind(prefix)+len(prefix)
+											# find suffix from left
+											mr = e["response"]["content"]["text"].find(suffix, ml)
+											# get match
+											match = e["response"]["content"]["text"][ml:mr]
+											# self.debugmsg(9, "ml:", ml, "	mr:", mr, "	match:", match, "	searchval:", searchval)
 
-										newvalue = "${"+newkey+"}"
-										self.debugmsg(8, "newvalue:", newvalue)
-										return newvalue
+											goffset = 1
+											if match == searchval:
 
-								start = pos+len(value)
-							else:
-								start = pos
-							# else:
-								# self.debugmsg(9, "didn't find key (",key,") in excerpt:", excerpt)
+												line = "${"+newkey+"}=		Get Substring LRB		${resp_"+str(resp)+".text}		"+prefix+"		"+suffix
+												self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
 
-					# check body for decoded value
-					if value != decvalue and decvalue in e["response"]["content"]["text"]:
-						self.debugmsg(8, "found value (",decvalue,") in body for ", e["request"]["url"])
+											else:
+												reprefix = re.escape(prefix)
+												resuffix = re.escape(suffix)
 
-						searchval = decvalue
-						start = 0
-						while newvalue == value and start >=0:
-							# self.debugmsg(9, "body:", e["response"]["content"]["text"])
-							# self.debugmsg(9, "start:", start, "looking for value:", value)
-							pos = e["response"]["content"]["text"].find(searchval, start)
-							# self.debugmsg(9, "pos:", pos)
-							if pos >=0:
-								offset = len(key)*2 + len(decvalue)*2
-								# excerpt = e["response"]["content"]["text"][(pos-len(key)*2):(pos+len(value)*2)]
-								excerpt = e["response"]["content"]["text"][(pos-len(key)-100):(pos+len(searchval)+100)]
-								# excerpt = e["response"]["content"]["text"][(pos-len(key)-offset):(pos+len(value)+offset)]
-								if key in excerpt:
-									# self.debugmsg(9, e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
-									self.debugmsg(9, "found key (",key,") in excerpt:", "|{}|".format(excerpt))
+												# test re pattern
+												pattern = reprefix+"(.*?)"+resuffix
+												# e["response"]["content"]["text"]
+												retest = re.search(pattern, e["response"]["content"]["text"]).group(0)
 
-									ekwname = e["kwname"]
+												self.debugmsg(8, "retest:", retest)
 
-									kpos = excerpt.find(key)
-									vpos = excerpt.find(searchval, kpos)
-									if vpos > kpos:
-										self.debugmsg(9, "kpos:", kpos, "vpos:", vpos)
-										fullprefix = excerpt[0:vpos].strip()
-										prefixarr = fullprefix.splitlines()
-										prefix = prefixarr[-1].strip()
-										self.debugmsg(9, "prefix: |{}|".format(prefix))
+												reprefix = re.escape(prefix).replace('"', r'\"').replace("\\", r"\\")
+												resuffix = re.escape(suffix).replace('"', r'\"').replace("\\", r"\\")
 
-										# self.debugmsg(9, "excerpt:", excerpt)
-										self.debugmsg(9, "vpos:", vpos, "	len(value):", len(searchval), "")
-										spos = vpos+len(searchval)
-										self.debugmsg(9, "spos:", spos, "	spos+5:", spos+5)
-										#	# suffix = excerpt[spos:5]
-										#	presuffix = excerpt[kpos:(vpos+len(value)+3)]
-										#	self.debugmsg(9, "presuffix: |{}|".format(presuffix))
-										#	# suffix = presuffix[-3:-1]
-										#	suffix = presuffix[-3:len(presuffix)].strip()
+												# line = "${regx_match}=		Get Lines Matching Regexp		${resp_"+str(resp)+".text}		"+reprefix+"(.*?)"+resuffix
+												line = "${regx_match}=		evaluate		re.search(\"" + reprefix + "(.*?)" + resuffix + "\", \"\"\"${resp_"+str(resp)+".text}\"\"\").group(0)		re"
 
-										fullsuffix = excerpt[spos:len(excerpt)]
-										suffixarr = fullsuffix.splitlines()
-										suffix = suffixarr[0].strip()
-										self.debugmsg(9, "suffix: |{}|".format(suffix))
+												self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
+												line = "${"+newkey+"}=		Get Substring LRB		${regx_match}		"+prefix+"		"+suffix
+												self.outdata["*** Keywords ***"][ekwname].insert(estep+1, line)
 
-										resp = e["entrycount"]+1
+												goffset += 1
 
-										# line = "${left}= 	Fetch From Right 	${resp_"+str(resp)+".text} 	"+prefix
-										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"], line)
-										# # self.debugmsg(9, line)
 
-										# line = "${"+key+"}= 	Fetch From Left 	${left} 	"+suffix
-										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"]+1, line)
-										# # self.debugmsg(9, line)
-
-										estep = self.find_estep(resp, ekwname)
+											line = "Set Global Variable		${"+newkey+"}"
+											self.outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
 
-										newkey = self.saveparam(key, searchval)
-
-										# test match with prefix and suffix works as expected?
-										# find prefix from right
-										ml = e["response"]["content"]["text"].rfind(prefix)+len(prefix)
-										# find suffix from left
-										mr = e["response"]["content"]["text"].find(suffix, ml)
-										# get match
-										match = e["response"]["content"]["text"][ml:mr]
-										# self.debugmsg(9, "ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
 
-										goffset = 1
-										if match == searchval:
-
-											line = "${"+newkey+"}=		Get Substring LRB		${resp_"+str(resp)+".text}		"+prefix+"		"+suffix
-											self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
+											newvalue = "${"+newkey+"}"
+											self.debugmsg(8, "newvalue:", newvalue)
+											return newvalue
 
-										else:
-											reprefix = re.escape(prefix)
-											resuffix = re.escape(suffix)
+									start = pos+len(value)
+								else:
+									start = pos
+								# else:
+									# self.debugmsg(9, "didn't find key (",key,") in excerpt:", excerpt)
 
-											# test re pattern
-											pattern = reprefix+"(.*?)"+resuffix
-											# e["response"]["content"]["text"]
-											retest = re.search(pattern, e["response"]["content"]["text"]).group(0)
-
-											self.debugmsg(9, "retest:", retest)
 
-											reprefix = re.escape(prefix).replace('"', r'\"').replace("\\", r"\\")
-											resuffix = re.escape(suffix).replace('"', r'\"').replace("\\", r"\\")
 
-											# line = "${regx_match}=		Get Lines Matching Regexp		${resp_"+str(resp)+".text}		"+reprefix+"(.*?)"+resuffix
-											line = "${regx_match}=		evaluate		re.search(\"" + reprefix + "(.*?)" + resuffix + "\", \"\"\"${resp_"+str(resp)+".text}\"\"\").group(0)		re"
 
-											self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
-											line = "${"+newkey+"}=		Get Substring LRB		${regx_match}		"+prefix+"		"+suffix
-											self.outdata["*** Keywords ***"][ekwname].insert(estep+1, line)
 
-											goffset += 1
 
 
-										line = "Set Global Variable		${"+newkey+"}"
-										self.outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
 
-
-
-										newvalue = "${"+newkey+"}"
-										self.debugmsg(9, "newvalue:", newvalue)
-										return newvalue
-								start = pos+len(value)
-							else:
-								start = pos
-
-
-
-					htmlvalue = html.escape(decvalue)
-					self.debugmsg(8, "Try to find decvalue (", decvalue, ") as html encoded value (", htmlvalue, ")")
-					# check body for html enc value
-					if value != htmlvalue and htmlvalue in e["response"]["content"]["text"]:
-						self.debugmsg(9, "found value (", htmlvalue, ") in body for ", e["request"]["url"])
-
-						searchval = htmlvalue
-						start = 0
-						while newvalue == value and start >=0:
-							# self.debugmsg(9, "body:", e["response"]["content"]["text"])
-							# self.debugmsg(9, "start:", start, "looking for value:", value)
-							pos = e["response"]["content"]["text"].find(searchval, start)
-							# self.debugmsg(9, "pos:", pos)
-							if pos >=0:
-								offset = len(key)*2 + len(decvalue)*2
-								# excerpt = e["response"]["content"]["text"][(pos-len(key)*2):(pos+len(value)*2)]
-								excerpt = e["response"]["content"]["text"][(pos-len(key)-100):(pos+len(searchval)+100)]
-								# excerpt = e["response"]["content"]["text"][(pos-len(key)-offset):(pos+len(value)+offset)]
-								if key in excerpt:
-									# self.debugmsg(9, e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
-									self.debugmsg(9, "found key (",key,") in excerpt:", "|{}|".format(excerpt))
-
-									ekwname = e["kwname"]
-
-									kpos = excerpt.find(key)
-									vpos = excerpt.find(searchval, kpos)
-									if vpos > kpos:
-										self.debugmsg(9, "kpos:", kpos, "vpos:", vpos)
-										fullprefix = excerpt[0:vpos].strip()
-										prefixarr = fullprefix.splitlines()
-										prefix = prefixarr[-1].strip()
-										self.debugmsg(9, "prefix: |{}|".format(prefix))
-
-										# self.debugmsg(9, "excerpt:", excerpt)
-										self.debugmsg(9, "vpos:", vpos, "	len(value):", len(searchval), "")
-										spos = vpos+len(searchval)
-										self.debugmsg(9, "spos:", spos, "	spos+5:", spos+5)
-										#	# suffix = excerpt[spos:5]
-										#	presuffix = excerpt[kpos:(vpos+len(value)+3)]
-										#	self.debugmsg(9, "presuffix: |{}|".format(presuffix))
-										#	# suffix = presuffix[-3:-1]
-										#	suffix = presuffix[-3:len(presuffix)].strip()
-
-										fullsuffix = excerpt[spos:len(excerpt)]
-										suffixarr = fullsuffix.splitlines()
-										suffix = suffixarr[0].strip()
-										self.debugmsg(9, "suffix: |{}|".format(suffix))
-
-										resp = e["entrycount"]+1
-
-										# line = "${left}= 	Fetch From Right 	${resp_"+str(resp)+".text} 	"+prefix
-										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"], line)
-										# # self.debugmsg(9, line)
-
-										# line = "${"+key+"}= 	Fetch From Left 	${left} 	"+suffix
-										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"]+1, line)
-										# # self.debugmsg(9, line)
-
-										estep = self.find_estep(resp, ekwname)
-
-										newkey = self.saveparam(key, searchval)
-
-										# test match with prefix and suffix works as expected?
-										# find prefix from right
-										ml = e["response"]["content"]["text"].rfind(prefix)+len(prefix)
-										# find suffix from left
-										mr = e["response"]["content"]["text"].find(suffix, ml)
-										# get match
-										match = e["response"]["content"]["text"][ml:mr]
-										# self.debugmsg(9, "ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
-
-										goffset = 1
-										if match == searchval:
-
-											line = "${"+newkey+"}=		Get Substring LRB		${resp_"+str(resp)+".text}		"+prefix+"		"+suffix
-											self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
-
-
-										else:
-											reprefix = re.escape(prefix)
-											resuffix = re.escape(suffix)
-
-											# test re pattern
-											pattern = reprefix+"(.*?)"+resuffix
-											# e["response"]["content"]["text"]
-											retest = re.search(pattern, e["response"]["content"]["text"]).group(0)
-
-											self.debugmsg(9, "retest:", retest)
-
-											reprefix = re.escape(prefix).replace('"', r'\"').replace("\\", r"\\")
-											resuffix = re.escape(suffix).replace('"', r'\"').replace("\\", r"\\")
-
-											# line = "${regx_match}=		Get Lines Matching Regexp		${resp_"+str(resp)+".text}		"+reprefix+"(.*?)"+resuffix
-											line = "${regx_match}=		evaluate		re.search(\"" + reprefix + "(.*?)" + resuffix + "\", \"\"\"${resp_"+str(resp)+".text}\"\"\").group(0)		re"
-
-											self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
-											line = "${"+newkey+"}=		Get Substring LRB		${regx_match}		"+prefix+"		"+suffix
-											self.outdata["*** Keywords ***"][ekwname].insert(estep+1, line)
-
-											goffset += 1
-
-
-										line = "Set Global Variable		${"+newkey+"}"
-										self.outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
-
-
-
-										newvalue = "${"+newkey+"}"
-										return newvalue
-								start = pos+len(value)
-							else:
-								start = pos
-
-
-					self.debugmsg(8, "decvalue:", decvalue, type(decvalue))
-					htmlvalue = urllib.parse.quote(decvalue)
-					self.debugmsg(8, "htmlvalue:", htmlvalue)
-					# htmlvalue = re.sub(r'%(.?.?)', r'&#x\1;', htmlvalue)
-					htmlvalue = self.h2r_html.htmlx_encode(decvalue)
-					self.debugmsg(8, "htmlvalue:", htmlvalue)
-					self.debugmsg(8, "Try to find decvalue (", decvalue, ") as html encoded value (", htmlvalue, ")")
-					# check body for html enc value
-					if value != htmlvalue and htmlvalue in e["response"]["content"]["text"]:
-						self.debugmsg(8, "found value (", htmlvalue, ") in body for ", e["request"]["url"])
-
-						searchval = htmlvalue
-						start = 0
-						while newvalue == value and start >=0:
-							# self.debugmsg(9, "body:", e["response"]["content"]["text"])
-							# self.debugmsg(9, "start:", start, "looking for value:", value)
-							pos = e["response"]["content"]["text"].find(searchval, start)
-							# self.debugmsg(9, "pos:", pos)
-							if pos >=0:
-								offset = len(key)*2 + len(decvalue)*2
-								# excerpt = e["response"]["content"]["text"][(pos-len(key)*2):(pos+len(value)*2)]
-								excerpt = e["response"]["content"]["text"][(pos-len(key)-100):(pos+len(searchval)+100)]
-								# excerpt = e["response"]["content"]["text"][(pos-len(key)-offset):(pos+len(value)+offset)]
-								if key in excerpt:
-									# self.debugmsg(9, e["kwname"], "	step:", e["step"], "	entrycount:", e["entrycount"])
-									self.debugmsg(8, "found key (",key,") in excerpt:", "|{}|".format(excerpt))
-
-									ekwname = e["kwname"]
-
-									kpos = excerpt.find(key)
-									vpos = excerpt.find(searchval, kpos)
-									if vpos > kpos:
-										self.debugmsg(8, "kpos:", kpos, "vpos:", vpos)
-										fullprefix = excerpt[0:vpos].strip()
-										prefixarr = fullprefix.splitlines()
-										prefix = prefixarr[-1].strip()
-										self.debugmsg(8, "prefix: |{}|".format(prefix))
-
-										# self.debugmsg(9, "excerpt:", excerpt)
-										self.debugmsg(8, "vpos:", vpos, "	len(value):", len(searchval), "")
-										spos = vpos+len(searchval)
-										self.debugmsg(8, "spos:", spos, "	spos+5:", spos+5)
-										#	# suffix = excerpt[spos:5]
-										#	presuffix = excerpt[kpos:(vpos+len(value)+3)]
-										#	self.debugmsg(9, "presuffix: |{}|".format(presuffix))
-										#	# suffix = presuffix[-3:-1]
-										#	suffix = presuffix[-3:len(presuffix)].strip()
-
-										fullsuffix = excerpt[spos:len(excerpt)]
-										suffixarr = fullsuffix.splitlines()
-										suffix = suffixarr[0].strip()
-										self.debugmsg(8, "suffix: |{}|".format(suffix))
-
-										resp = e["entrycount"]+1
-
-										# line = "${left}= 	Fetch From Right 	${resp_"+str(resp)+".text} 	"+prefix
-										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"], line)
-										# # self.debugmsg(9, line)
-
-										# line = "${"+key+"}= 	Fetch From Left 	${left} 	"+suffix
-										# self.outdata["*** Keywords ***"][ekwname].insert(e["step"]+1, line)
-										# # self.debugmsg(9, line)
-
-										estep = self.find_estep(resp, ekwname)
-
-										newkey = self.saveparam(key, searchval)
-
-										# test match with prefix and suffix works as expected?
-										# find prefix from right
-										ml = e["response"]["content"]["text"].rfind(prefix)+len(prefix)
-										# find suffix from left
-										mr = e["response"]["content"]["text"].find(suffix, ml)
-										# get match
-										match = e["response"]["content"]["text"][ml:mr]
-										# self.debugmsg(9, "ml:", ml, "	mr:", mr, "	match:", match, "	value:", value)
-
-										goffset = 1
-										if match == searchval:
-
-											line = "${"+newkey+"}=		Get Substring LRB		${resp_"+str(resp)+".text}		"+prefix+"		"+suffix
-											self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
-
-
-										else:
-											reprefix = re.escape(prefix)
-											resuffix = re.escape(suffix)
-
-											# test re pattern
-											pattern = reprefix+"(.*?)"+resuffix
-											# e["response"]["content"]["text"]
-											retest = re.search(pattern, e["response"]["content"]["text"]).group(0)
-
-											self.debugmsg(8, "retest:", retest)
-
-											reprefix = re.escape(prefix).replace('"', r'\"').replace("\\", r"\\")
-											resuffix = re.escape(suffix).replace('"', r'\"').replace("\\", r"\\")
-
-											# line = "${regx_match}=		Get Lines Matching Regexp		${resp_"+str(resp)+".text}		"+reprefix+"(.*?)"+resuffix
-											line = "${regx_match}=		evaluate		re.search(\"" + reprefix + "(.*?)" + resuffix + "\", \"\"\"${resp_"+str(resp)+".text}\"\"\").group(0)		re"
-
-											self.outdata["*** Keywords ***"][ekwname].insert(estep, line)
-											line = "${"+newkey+"}=		Get Substring LRB		${regx_match}		"+prefix+"		"+suffix
-											self.outdata["*** Keywords ***"][ekwname].insert(estep+1, line)
-
-											goffset += 1
-
-
-
-										line = "${"+newkey+"}		Evaluate		html.unescape('${"+newkey+"}')		html"
-										self.outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
-
-										goffset += 1
-
-										line = "Set Global Variable		${"+newkey+"}"
-										self.outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
-
-
-
-										newvalue = "${"+newkey+"}"
-										self.debugmsg(8, "newvalue:", newvalue)
-										return newvalue
-								start = pos+len(value)
-							else:
-								start = pos
-
-
-
-		# self.debugmsg(9, "find_variable	Last resort")
-		# Last resort if it didn't exist anywhere, so create it as a hard coded variable
-		if newvalue != decvalue:
-			self.debugmsg(6, "Last resort if value didn't exist anywhere")
-			newvalue = decvalue
-			newkey = self.saveparam(key, decvalue)
-			line = "${"+newkey+"}		"+decvalue
-			self.outdata["*** Variables ***"].append(line)
-
-			newvalue = "${"+newkey+"}"
-			self.debugmsg(8, "last resort", newkey, newvalue)
-			return newvalue
 
 		if newvalue == value:
 			self.debugmsg(6, "Last resort if value didn't exist anywhere")
@@ -1078,6 +555,7 @@ class har2rfreq():
 
 
 		return newvalue
+
 
 	def find_in_string(self, key, searchval, instr):
 		self.debugmsg(9, "find_in_string key:", key, "	searchval:", searchval, "	instr:", instr)
@@ -1540,8 +1018,8 @@ class har2rfreq():
 
 
 				j += 1
-				if j>2:
-					break
+				# if j>2:
+				# 	break
 
 			i += 1
 
