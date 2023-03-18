@@ -181,10 +181,11 @@ class h2r_base():
 				sformat = timelst[searchval]
 				self.parent.debugmsg(8, "sformat:", sformat)
 
-				vformat = sformat.replace("%Y", "${yyyy}").replace("%m", "${mm}").replace("%d", "${dd}").replace("%H", "${hh}").replace("%M", "${mm}").replace("%S", "${ss}")
+				# >	Robot Framework variables, similarly as keywords, are case-insensitive
+				vformat = sformat.replace("%Y", "${yr}").replace("%m", "${mth}").replace("%d", "${dy}").replace("%H", "${hr}").replace("%M", "${min}").replace("%S", "${sec}")
 				self.parent.debugmsg(8, "vformat:", vformat)
 				# ${yyyy} 	${mm} 	${dd} = 	Get Time 	year,month,day
-				line = "${yyyy} 	${mm} 	${dd} 	${hh} 	${mm} 	${ss}= 	Get Time 	year,month,day,hour,min,sec"
+				line = "${yr} 	${mth} 	${dy} 	${hr} 	${min} 	${sec}= 	Get Time 	year,month,day,hour,min,sec"
 				self.parent.outdata["*** Keywords ***"][kwname].append(line)
 
 				line = "${"+key+"}=		Set Variable		" + vformat
