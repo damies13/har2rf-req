@@ -349,14 +349,18 @@ class har2rfreq():
 	def process_entry(self, entry):
 
 
-		self.debugmsg(9, entry)
+		self.debugmsg(8, entry)
 		self.debugmsg(7, entry["request"]["method"], entry["request"]["url"])
+
+		if "processor" not in entry:
+			entry["processor"] = {}
 
 		kwname = self.workingdata["keyword"]
 
 		# add extra info to entry
 		entry["kwname"] = kwname
 		entry["entrycount"] = self.workingdata["entrycount"]
+
 
 
 		if "session" not in self.workingdata:
@@ -372,6 +376,7 @@ class har2rfreq():
 					# hdrs[h["name"]] = h["value"]
 					value = self.find_variable(h["name"], h["value"])
 					hdrs += " 	" + h["name"] + "=" + value
+					self.workingdata["sessiondata"][h["name"]] = value
 
 				if h["name"].lower() == "cookie":
 					clst = h["value"].split(";")
@@ -399,22 +404,21 @@ class har2rfreq():
 			self.outdata["*** Keywords ***"][kwname].append(line)
 
 
+		for processor in self.processors.keys():
+			self.debugmsg(8, "processor:", processor)
+			entry = eval(processor +"(entry)")
+
+		self.debugmsg(8, entry)
+
 		argdata = ""
 
-		# headers
+		if "headers" in entry["processor"]:
+			argdata += " 	" + "headers=" + entry["processor"]["headers"]
 
-		hdrs = ""
-		for h in entry["request"]["headers"]:
-			self.debugmsg(8, "h:", h["name"], h["value"])
-			specialh = ["cookie", "accept-encoding", "content-length"]	# , "pragma", "cache-control"
-			if h["name"].lower() not in specialh and h["name"][0] != ":":
-				# hdrs[h["name"]] = h["value"]
-				value = self.find_variable(h["name"], h["value"])
-				hdrs += " 	" + h["name"] + "=" + value
-		if len(hdrs)>0:
-			line = "&{Req_Headers}= 	Create dictionary" + hdrs
-			self.outdata["*** Keywords ***"][kwname].append(line)
-			argdata += " 	" + "headers=${Req_Headers}"
+
+
+
+
 
 
 		# GET
@@ -683,6 +687,7 @@ class har2rfreq():
 		baseurl = "/".join(basearr)
 		self.workingdata["baseurl"] = baseurl
 		self.workingdata["session"] = sessionname
+		self.workingdata["sessiondata"] = {}
 		# self.outdata["*** Settings ***"].append("Suite Setup           Create Session    " + sessionname + " 	" +	baseurl)
 		self.outdata["*** Test Cases ***"][tcname].insert(0, "Create Session    " + sessionname + " 	" +	baseurl + " 	disable_warnings=1")
 
@@ -748,8 +753,8 @@ class har2rfreq():
 
 
 				j += 1
-				# if j>2:
-				# 	break
+				if j>2:
+					break
 
 			i += 1
 

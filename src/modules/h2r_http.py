@@ -26,6 +26,13 @@ class h2r_http():
 		if psr not in self.parent.parsers:
 			self.parent.parsers[psr] = {}
 
+		#
+		# Register processors
+		#
+
+		pro = "self.h2r_http.request_headers"
+		if pro not in self.parent.processors:
+			self.parent.processors[pro] = {}
 
 
 
@@ -156,7 +163,35 @@ class h2r_http():
 
 		return None
 
+	#
+	# processors
+	#
+	def request_headers(self, entry):
+		self.parent.debugmsg(6, "headers processor")
+		self.parent.debugmsg(6, "entry:", entry)
 
+		self.parent.debugmsg(8, "sessiondata:", self.parent.workingdata["sessiondata"])
+		session = self.parent.workingdata["sessiondata"]
+
+		# headers
+		kwname = entry["kwname"]
+
+		hdrs = ""
+		for h in entry["request"]["headers"]:
+			self.parent.debugmsg(8, "h:", h["name"], h["value"])
+			specialh = ["cookie", "accept-encoding", "content-length"]	# , "pragma", "cache-control"
+			if h["name"].lower() not in specialh and h["name"][0] != ":":
+				# hdrs[h["name"]] = h["value"]
+				value = self.parent.find_variable(h["name"], h["value"])
+				if h["name"] not in session.keys() or session[h["name"]] != value:
+					hdrs += " 	" + h["name"] + "=" + value
+		if len(hdrs.strip())>0:
+			line = "&{Req_Headers}= 	Create dictionary" + hdrs
+			self.parent.outdata["*** Keywords ***"][kwname].append(line)
+			# argdata += " 	" + "headers=${Req_Headers}"
+			entry["processor"]["headers"] = "${Req_Headers}"
+
+		return entry
 
 
 
