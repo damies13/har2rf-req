@@ -44,6 +44,12 @@ class h2r_html():
 		psr = "self.h2r_html.html_body"
 		if psr not in self.parent.parsers:
 			self.parent.parsers[psr] = {}
+		#
+		# Register processors
+		#
+		pro = "self.h2r_html.post_data_params"
+		if pro not in self.parent.processors:
+			self.parent.processors[pro] = {}
 
 
 
@@ -125,9 +131,11 @@ class h2r_html():
 				# self.parent.debugmsg(9, "Searching History")
 				for e in self.parent.workingdata["history"]:
 
-					resp = e["entrycount"]+1
+					# resp = e["entrycount"]+1
+					resp = e["entrycount"]
 					ekwname = e["kwname"]
 					estep = self.parent.find_estep(resp, ekwname)
+					self.parent.debugmsg(8, "estep:", estep)
 
 
 
@@ -220,6 +228,7 @@ class h2r_html():
 													goffset += 1
 
 
+												self.parent.debugmsg(8, "estep:", estep, "	goffset:", goffset)
 												line = "Set Global Variable 	${"+newkey+"}"
 												self.parent.outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
 
@@ -235,7 +244,51 @@ class h2r_html():
 								# else:
 									# self.parent.debugmsg(9, "didn't find key (",key,") in excerpt:", excerpt)
 
+		return None
 
+	#
+	# processors
+	#
+	def post_data_params(self, entry):
+		self.parent.debugmsg(6, "post data")
+		self.parent.debugmsg(9, "entry:", entry)
+
+		kwname = entry["kwname"]
+		argdata = ""
+
+
+		if "postData" in entry["request"]:
+			pd_try = True
+			pd = entry["request"]["postData"]
+			if pd_try and "params" in pd:
+				pd_try = False
+				dictdata = ""
+				for param in pd["params"]:
+					newvalue = self.parent.find_variable(param["name"], param["value"])
+					dictdata += " 	" + param["name"] + "=" + newvalue
+
+				dname = "postdata_{}".format(entry["entrycount"])
+				line = "&{"+dname+"}= 	Create dictionary" + dictdata
+				self.parent.outdata["*** Keywords ***"][kwname].append(line)
+				argdata += " 	" + "data=${"+dname+"}"
+
+			# if pd_try and "text" in pd and pd["text"][0] == "{":
+			# 	pd_try = False
+			# 	jsondata = json.loads(pd["text"])
+			# 	dname = "json_{}".format(entry["entrycount"])
+			# 	paramname, lines = self.process_dict(dname, jsondata)
+			# 	self.parent.debugmsg(8, "paramname:", paramname, "	paramlst:", paramlst)
+			# 	self.parent.outdata["*** Keywords ***"][kwname].extend(lines)
+			# 	argdata += " 	" + "json="+paramname
+
+		if len(argdata.strip()) >0:
+			if "argdata" in entry["processor"]:
+				entry["processor"]["argdata"] += argdata
+			else:
+				entry["processor"]["argdata"] = argdata
+
+
+		return entry
 
 
 

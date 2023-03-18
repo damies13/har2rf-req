@@ -3,16 +3,15 @@ import json
 import os
 from datetime import datetime
 import dateutil.parser
-import re
 import inspect
 
 import urllib.parse
-import html
 
 
 import modules.h2r_html
 import modules.h2r_base
 import modules.h2r_http
+import modules.h2r_json
 
 
 class har2rfreq():
@@ -28,7 +27,7 @@ class har2rfreq():
 	parserdata = {}
 	processors = {}
 
-	debuglvl = 8
+	debuglvl = 6
 
 	def __init__(self):
 		# self.debugmsg(9, sys.argv)
@@ -53,6 +52,7 @@ class har2rfreq():
 		self.h2r_base = modules.h2r_base.h2r_base(self)
 		self.h2r_html = modules.h2r_html.h2r_html(self)
 		self.h2r_http = modules.h2r_http.h2r_http(self)
+		self.h2r_json = modules.h2r_json.h2r_json(self)
 
 	def display_help(self):
 		self.debugmsg(0, "")
@@ -140,11 +140,11 @@ class har2rfreq():
 		self.outdata["*** Keywords ***"] = {}
 
 		self.outdata["*** Keywords ***"]["Get Substring LRB"] = []
-		self.outdata["*** Keywords ***"]["Get Substring LRB"].append("[Documentation]	Get Substring using Left and Right Boundaries")
-		self.outdata["*** Keywords ***"]["Get Substring LRB"].append("[Arguments]    ${string}	${LeftB}	${RightB}")
-		self.outdata["*** Keywords ***"]["Get Substring LRB"].append("${left}= 	Fetch From Right 	${string}	${LeftB}")
+		self.outdata["*** Keywords ***"]["Get Substring LRB"].append("[Documentation] 	Get Substring using Left and Right Boundaries")
+		self.outdata["*** Keywords ***"]["Get Substring LRB"].append("[Arguments] 	${string} 	${LeftB} 	${RightB}")
+		self.outdata["*** Keywords ***"]["Get Substring LRB"].append("${left}= 	Fetch From Right 	${string} 	${LeftB}")
 		self.outdata["*** Keywords ***"]["Get Substring LRB"].append("${match}= 	Fetch From Left 	${left} 	${RightB}")
-		self.outdata["*** Keywords ***"]["Get Substring LRB"].append("[Return]	${match}")
+		self.outdata["*** Keywords ***"]["Get Substring LRB"].append("[Return] 	${match}")
 
 
 
@@ -184,15 +184,19 @@ class har2rfreq():
 	def find_estep(self, respno, kwname):
 		starts = "${resp_"+str(respno)+"}"
 		i = 0
+		self.debugmsg(9, "i:", i, starts)
 		for e in self.outdata["*** Keywords ***"][kwname]:
-			# self.debugmsg(9, starts, " | ", e)
+			self.debugmsg(9, "i:", i, starts, " | ", e)
 			if e.startswith(starts):
 				i += 1
-				# self.debugmsg(9, "i:", i, starts, " | ", e)
+				self.debugmsg(9, "i:", i, starts, " | ", e)
 				return i
 			i += 1
 
-		return -1
+		# this is basically a not found condition
+		i = -1
+		self.debugmsg(9, "ret i:", i, starts)
+		return i
 
 	def find_variable(self, key, value):
 
@@ -349,7 +353,7 @@ class har2rfreq():
 	def process_entry(self, entry):
 
 
-		self.debugmsg(8, entry)
+		self.debugmsg(9, entry)
 		self.debugmsg(7, entry["request"]["method"], entry["request"]["url"])
 
 		if "processor" not in entry:
@@ -359,8 +363,8 @@ class har2rfreq():
 
 		# add extra info to entry
 		entry["kwname"] = kwname
+		self.workingdata["entrycount"] += 1
 		entry["entrycount"] = self.workingdata["entrycount"]
-
 
 
 		if "session" not in self.workingdata:
@@ -387,6 +391,7 @@ class har2rfreq():
 							key = citm[0].strip()
 							value = self.self.find_variable(key, citm[1].strip())
 							cook += " 	" + key + "=" + value
+							self.workingdata["cookiedata"][key] = value
 
 			line = "&{Headers}= 	Create dictionary" + hdrs
 			self.outdata["*** Keywords ***"][kwname].append(line)
@@ -408,141 +413,26 @@ class har2rfreq():
 			self.debugmsg(8, "processor:", processor)
 			entry = eval(processor +"(entry)")
 
-		self.debugmsg(8, entry)
+		self.debugmsg(9, entry)
 
 		argdata = ""
 
-		if "headers" in entry["processor"]:
-			argdata += " 	" + "headers=" + entry["processor"]["headers"]
+		if "argdata" in entry["processor"] and len(entry["processor"]["argdata"].strip())>0:
+			argdata += " 	" + entry["processor"]["argdata"].strip()
+			self.debugmsg(8, "argdata:", argdata)
+
+		path = "/todo"
+		if "path" in entry["processor"]:
+			path = entry["processor"]["path"]
 
 
+		action = entry["request"]["method"]
+		resp = "resp_{}".format(entry["entrycount"])
+		line = "${"+resp+"}= 	" + action + " On Session 	" + self.workingdata["session"] + " 	url=" + path + argdata
+		self.outdata["*** Keywords ***"][kwname].append(line)
 
-
-
-
-
-		# GET
-		# GET
-		# GET
-		if entry["request"]["method"] == "GET":
-			statuscode = entry["response"]["status"]
-			if statuscode == 302:
-				argdata += " 	" + "expected_status={}".format(statuscode)
-				argdata += " 	" + "allow_redirects=${False}"
-				# if "redirecturl" not in self.workingdata:
-					# self.workingdata["redirecturl"] = entry["request"]["url"].replace(self.workingdata["baseurl"], "")
-			else:
-				argdata += " 	" + "expected_status={}".format(statuscode)
-
-
-			if "redirecturl" in self.workingdata:
-				del self.workingdata["redirecturl"]
-			else:
-				self.workingdata["entrycount"] += 1
-				ec = self.workingdata["entrycount"]
-				path = entry["request"]["url"].replace(self.workingdata["baseurl"], "")
-				patharr = path.split("?")
-				if len(patharr)>1:
-					path = patharr[0]
-					params = ""
-
-					parrin = patharr[1].split("&")
-					parrout = []
-					for p in parrin:
-						if "=" in p:
-							key, value = p.split("=", 1)
-							newvalue = self.find_variable(key, value)
-							parrout.append("=".join([key, newvalue]))
-						else:
-							key = "${EMPTY}"
-							newvalue = self.find_variable("NoKey", p)
-							parrout.append("=".join([key, newvalue]))
-
-					params = " 	".join(parrout)
-
-					dname = "params_{}".format(ec)
-					line = "&{"+dname+"}= 	Create dictionary 	" + params
-					self.outdata["*** Keywords ***"][kwname].append(line)
-					argdata += " 	" + "params=${"+dname+"}"
-
-				resp = "resp_{}".format(ec)
-				line = "${"+resp+"}= 	GET On Session 	" + self.workingdata["session"] + " 	url=" + path + argdata
-				self.outdata["*** Keywords ***"][kwname].append(line)
-
-				# line = "Log 	${"+resp+".text}"
-				# self.outdata["*** Keywords ***"][kwname].append(line)
-
-		# POST
-		# POST
-		# POST
-		if entry["request"]["method"] == "POST":
-
-			self.workingdata["entrycount"] += 1
-			ec = self.workingdata["entrycount"]
-
-			path = entry["request"]["url"].replace(self.workingdata["baseurl"], "")
-
-			patharr = path.split("?")
-			if len(patharr)>1:
-				path = patharr[0]
-				params = ""
-
-				parrin = patharr[1].split("&")
-				parrout = []
-				for p in parrin:
-					key, value = p.split("=", 1)
-					newvalue = self.find_variable(key, value)
-					parrout.append("=".join([key, newvalue]))
-
-				params = " 	".join(parrout)
-
-				dname = "params_{}".format(ec)
-				line = "&{"+dname+"}= 	Create dictionary	" + params
-				self.outdata["*** Keywords ***"][kwname].append(line)
-				argdata += " 	" + "params=${"+dname+"}"
-
-
-
-			if "postData" in entry["request"]:
-				pd_try = True
-				pd = entry["request"]["postData"]
-				if pd_try and "params" in pd:
-					pd_try = False
-					dictdata = ""
-					for param in pd["params"]:
-						newvalue = self.find_variable(param["name"], param["value"])
-						dictdata += " 	" + param["name"] + "=" + newvalue
-
-					dname = "postdata_{}".format(ec)
-					line = "&{"+dname+"}= 	Create dictionary" + dictdata
-					self.outdata["*** Keywords ***"][kwname].append(line)
-					argdata += " 	" + "data=${"+dname+"}"
-
-				if pd_try and "text" in pd and pd["text"][0] == "{":
-					pd_try = False
-					jsondata = json.loads(pd["text"])
-					dname = "json_{}".format(ec)
-					paramname, lines = self.process_dict(dname, jsondata)
-					self.debugmsg(8, "paramname:", paramname, "	paramlst:", paramlst)
-					self.outdata["*** Keywords ***"][kwname].extend(lines)
-					argdata += " 	" + "json="+paramname
-
-
-			statuscode = entry["response"]["status"]
-			if statuscode == 302:
-				argdata += " 	" + "expected_status={}".format(statuscode)
-				argdata += " 	" + "allow_redirects=${False}"
-				# if "redirecturl" not in self.workingdata:
-					# self.workingdata["redirecturl"] = entry["request"]["url"].replace(self.workingdata["baseurl"], "")
-			else:
-				argdata += " 	" + "expected_status={}".format(statuscode)
-
-
-			resp = "resp_{}".format(ec)
-			line = "${"+resp+"}= 	POST On Session 	" + self.workingdata["session"] + " 	url=" + path + argdata
-			self.outdata["*** Keywords ***"][kwname].append(line)
-			# line = "Log 	${"+resp+".text}"
-			# self.outdata["*** Keywords ***"][kwname].append(line)
+		# line = "Log 	${"+resp+".text}"
+		# self.outdata["*** Keywords ***"][kwname].append(line)
 
 
 		# append entry to history
@@ -688,6 +578,7 @@ class har2rfreq():
 		self.workingdata["baseurl"] = baseurl
 		self.workingdata["session"] = sessionname
 		self.workingdata["sessiondata"] = {}
+		self.workingdata["cookiedata"] = {}
 		# self.outdata["*** Settings ***"].append("Suite Setup           Create Session    " + sessionname + " 	" +	baseurl)
 		self.outdata["*** Test Cases ***"][tcname].insert(0, "Create Session    " + sessionname + " 	" +	baseurl + " 	disable_warnings=1")
 
@@ -741,7 +632,11 @@ class har2rfreq():
 
 			for e in sortedentries:
 				# self.debugmsg(9, e)
-				self.debugmsg(5, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j)
+				self.debugmsg(7, "")
+				self.debugmsg(7, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j)
+				self.debugmsg(7, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j)
+				self.debugmsg(7, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j)
+				self.debugmsg(7, "")
 				self.debugmsg(7, "e URL:", e["request"]["method"], e["request"]["url"])
 
 				# etime = int(iso2sec(e["startedDateTime"]))
@@ -753,8 +648,8 @@ class har2rfreq():
 
 
 				j += 1
-				if j>2:
-					break
+				# if j>15:
+				# 	break
 
 			i += 1
 
