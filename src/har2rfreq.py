@@ -67,16 +67,16 @@ class har2rfreq():
 		imports = {}
 		excluded_modules = ['h2r_template']
 
-		self.debugmsg(5, 'dirname(__file__):    ', os.path.dirname(__file__))
+		self.debugmsg(9, 'dirname(__file__):    ', os.path.dirname(__file__))
 		modulesdir = os.path.abspath(os.path.join(os.path.dirname(__file__), "modules"))
-		self.debugmsg(5, 'modulesdir:    ', modulesdir)
+		self.debugmsg(7, 'modulesdir:    ', modulesdir)
 		modules = os.listdir(modulesdir)
-		self.debugmsg(5, 'modules:    ', modules)
+		self.debugmsg(9, 'modules:    ', modules)
 
 		for module in modules:
 			modname, ext = os.path.splitext(module)
 			if ext == '.py' and modname not in excluded_modules:
-				self.debugmsg(7, "loading module", modname)
+				self.debugmsg(5, "loading module", modname)
 
 				# import modules.h2r_base
 				import_name = "modules."+modname
