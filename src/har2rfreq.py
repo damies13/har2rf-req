@@ -260,7 +260,7 @@ class har2rfreq():
 		decoderlist = list(self.decoders.keys())
 		decoderlist.sort()
 		for decoder in decoderlist:
-			self.debugmsg(8, "decoder:", decoder)
+			self.debugmsg(5, "decoder:", decoder)
 			priority, decodername = decoder.split(":")
 			decval = eval(decodername +"(value)")
 			self.debugmsg(8, "decval:", decval)
@@ -275,7 +275,7 @@ class har2rfreq():
 		encoderlist.sort()
 		for searchval in list(searchvals.keys()):
 			for encoder in encoderlist:
-				self.debugmsg(8, "encoder:", encoder)
+				self.debugmsg(5, "encoder:", encoder)
 				priority, encodername = encoder.split(":")
 				evcval = eval(encodername +"(searchval)")
 				self.debugmsg(8, "evcval:", evcval)
@@ -305,7 +305,7 @@ class har2rfreq():
 		parserlist = list(self.parsers.keys())
 		parserlist.sort()
 		for parser in parserlist:
-			self.debugmsg(8, "parser:", parser)
+			self.debugmsg(5, "parser:", parser)
 			priority, parsername = parser.split(":")
 			retvalue = eval(parsername +"()")
 			self.debugmsg(8, "retvalue:", retvalue)
@@ -449,7 +449,7 @@ class har2rfreq():
 		processorlist = list(self.processors.keys())
 		processorlist.sort()
 		for processor in processorlist:
-			self.debugmsg(8, "processor:", processor)
+			self.debugmsg(5, "processor:", processor)
 			priority, processorname = processor.split(":")
 			entry = eval(processorname +"(entry)")
 
