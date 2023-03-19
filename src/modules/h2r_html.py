@@ -14,17 +14,17 @@ class h2r_html():
 		# Register Encoders
 		#
 
-		html = "self.h2r_html.html_encode"
+		html = "01:self.h2r_html.html_encode"
 		if html not in self.parent.encoders:
 			self.parent.encoders[html] = {}
 			self.parent.encoders[html]["robottranscode"] = "self.h2r_html.html_robotdecode"
 
-		htmlX = "self.h2r_html.htmlX_encode"
+		htmlX = "03:self.h2r_html.htmlX_encode"
 		if htmlX not in self.parent.encoders:
 			self.parent.encoders[htmlX] = {}
 			self.parent.encoders[htmlX]["robottranscode"] = "self.h2r_html.htmlX_robotdecode"
 
-		htmlx = "self.h2r_html.htmlx_encode"
+		htmlx = "03:self.h2r_html.htmlx_encode"
 		if htmlx not in self.parent.encoders:
 			self.parent.encoders[htmlx] = {}
 			self.parent.encoders[htmlx]["robottranscode"] = "self.h2r_html.htmlX_robotdecode"
@@ -33,7 +33,7 @@ class h2r_html():
 		# Register Decoders
 		#
 
-		html = "self.h2r_html.html_decode"
+		html = "00:self.h2r_html.html_decode"
 		if html not in self.parent.encoders:
 			self.parent.decoders[html] = {}
 			self.parent.decoders[html]["robottranscode"] = "self.h2r_html.html_robotencode"
@@ -41,13 +41,13 @@ class h2r_html():
 		#
 		# Register Paersers
 		#
-		psr = "self.h2r_html.html_body"
+		psr = "09:self.h2r_html.html_body"
 		if psr not in self.parent.parsers:
 			self.parent.parsers[psr] = {}
 		#
 		# Register processors
 		#
-		pro = "self.h2r_html.post_data_params"
+		pro = "09:self.h2r_html.post_data_params"
 		if pro not in self.parent.processors:
 			self.parent.processors[pro] = {}
 

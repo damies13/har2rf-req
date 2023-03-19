@@ -22,19 +22,19 @@ class h2r_base():
 		# Register Paersers
 		#
 
-		ep = "self.h2r_base.exiting_paramkey"
+		ep = "00:self.h2r_base.exiting_paramkey"
 		if ep not in self.parent.parsers:
 			self.parent.parsers[ep] = {}
 
-		ep = "self.h2r_base.exiting_paramval"
+		ep = "01:self.h2r_base.exiting_paramval"
 		if ep not in self.parent.parsers:
 			self.parent.parsers[ep] = {}
 
-		bp = "self.h2r_base.is_timestamp"
+		bp = "02:self.h2r_base.is_timestamp"
 		if bp not in self.parent.parsers:
 			self.parent.parsers[bp] = {}
 
-		bp = "self.h2r_base.is_datetime"
+		bp = "02:self.h2r_base.is_datetime"
 		if bp not in self.parent.parsers:
 			self.parent.parsers[bp] = {}
 

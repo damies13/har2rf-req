@@ -11,7 +11,7 @@ class h2r_json():
 		#
 		# Register processors
 		#
-		pro = "self.h2r_json.post_data_json"
+		pro = "08:self.h2r_json.post_data_json"
 		if pro not in self.parent.processors:
 			self.parent.processors[pro] = {}
 

@@ -10,7 +10,7 @@ class h2r_template():
 		#
 		# Register Encoders
 		#
-		html = "self.h2r_template.example_encode"
+		html = "PP:self.h2r_template.example_encode"
 		if html not in self.parent.encoders:
 			self.parent.encoders[html] = {}
 			self.parent.encoders[html]["robottranscode"] = "self.h2r_template.example_robotdecode"
@@ -19,7 +19,7 @@ class h2r_template():
 		#
 		# Register Decoders
 		#
-		html = "self.h2r_template.example_decode"
+		html = "PP:self.h2r_template.example_decode"
 		if html not in self.parent.encoders:
 			self.parent.decoders[html] = {}
 			self.parent.decoders[html]["robottranscode"] = "self.h2r_template.example_robotencode"
@@ -27,7 +27,7 @@ class h2r_template():
 		#
 		# Register Paersers
 		#
-		ep = "self.h2r_template.example_parser"
+		ep = "PP:self.h2r_template.example_parser"
 		if ep not in self.parent.parsers:
 			self.parent.parsers[ep] = {}
 

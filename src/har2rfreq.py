@@ -3,12 +3,15 @@ import json
 import os
 from datetime import datetime
 import dateutil.parser
+import argparse
 import inspect
 
 import urllib.parse
 
 
 class har2rfreq():
+
+	version = "0.0.2"
 
 	pathin = None
 	pathout = None
@@ -21,20 +24,37 @@ class har2rfreq():
 	parserdata = {}
 	processors = {}
 
-	debuglvl = 6
+	debuglvl = 0
 
 	def __init__(self):
 		# self.debugmsg(9, sys.argv)
-		self.debugmsg(0, "har2rfreq")
-		if len(sys.argv) < 2:
-			self.display_help()
+		# self.debugmsg(0, "har2rfreq")
+		# self.debugmsg(0, "	Version", self.version)
+
+		parser = argparse.ArgumentParser(
+							prog='har2rfreq',
+							description='A tool for converting har files into robot framework tests using Requests Library',
+							epilog='Version '+self.version)
+		parser.add_argument('-g', '--debug', help='Set debug level, default level is 0')
+		parser.add_argument('-v', '--version', help='Display the version and exit', action='store_true')
+		parser.add_argument('path', help='Path to har file or folder of har files')
+		self.args = parser.parse_args()
+
+		self.debugmsg(6, "self.args: ", self.args)
+
+		if self.args.debug:
+			self.debuglvl = int(self.args.debug)
+
+
+		if self.args.version:
+			exit()
 
 		self.debugmsg(9, "Run init_modules")
 		self.init_modules()
 		self.debugmsg(9, "Run init_outdata")
 		self.init_outdata()
 
-		self.pathin = os.path.abspath(sys.argv[1])
+		self.pathin = os.path.abspath(self.args.path)
 		self.debugmsg(9, "self.pathin:", self.pathin)
 		self.pathout = os.path.dirname(self.pathin)
 		self.debugmsg(9, "self.pathout:", self.pathout)
@@ -67,13 +87,6 @@ class har2rfreq():
 				exec_str = "self."+modname+" = imports['"+modname+"']."+modname+"."+modname+"(self)"
 				self.debugmsg(9, "exec_str:", exec_str)
 				exec(exec_str)
-
-	def display_help(self):
-		self.debugmsg(0, "")
-		self.debugmsg(0, "Help")
-		self.debugmsg(0, "")
-		self.debugmsg(0, sys.argv[0], "<path to har file>")
-		self.debugmsg(0, "")
 
 	def debugmsg(self, lvl, *msg):
 		msglst = []
@@ -163,7 +176,7 @@ class har2rfreq():
 
 
 	def load_har(self, harfile):
-
+		self.debugmsg(3, "Loading har file:", harfile)
 		with open(harfile, "rb") as f:
 			hardata = f.read()
 			hartxt = hardata.decode("utf-8")
@@ -194,6 +207,7 @@ class har2rfreq():
 						of.write('\n')
 
 				of.write('\n')
+			self.debugmsg(1, "Robot file saved:", ofname)
 
 	def find_estep(self, respno, kwname):
 		starts = "${resp_"+str(respno)+"}"
@@ -243,9 +257,12 @@ class har2rfreq():
 
 		self.debugmsg(6, "find if any decoders can decode the value")
 
-		for decoder in self.decoders.keys():
+		decoderlist = list(self.decoders.keys())
+		decoderlist.sort()
+		for decoder in decoderlist:
 			self.debugmsg(8, "decoder:", decoder)
-			decval = eval(decoder +"(value)")
+			priority, decodername = decoder.split(":")
+			decval = eval(decodername +"(value)")
 			self.debugmsg(8, "decval:", decval)
 			if decval != value:
 				searchvals[decval] = []
@@ -254,10 +271,13 @@ class har2rfreq():
 
 		self.debugmsg(6, "find if any encoders can encode the original value or decoded values")
 
+		encoderlist = list(self.encoders.keys())
+		encoderlist.sort()
 		for searchval in list(searchvals.keys()):
-			for encoder in self.encoders.keys():
+			for encoder in encoderlist:
 				self.debugmsg(8, "encoder:", encoder)
-				evcval = eval(encoder +"(searchval)")
+				priority, encodername = encoder.split(":")
+				evcval = eval(encodername +"(searchval)")
 				self.debugmsg(8, "evcval:", evcval)
 				if evcval != searchval and evcval not in searchvals.keys():
 					searchvals[evcval] = []
@@ -282,10 +302,13 @@ class har2rfreq():
 		if "paramvalues" not in self.workingdata:
 			self.workingdata["paramvalues"] = {}
 
-		for parser in self.parsers.keys():
+		parserlist = list(self.parsers.keys())
+		parserlist.sort()
+		for parser in parserlist:
 			self.debugmsg(8, "parser:", parser)
-			retvalue = eval(parser +"()")
-			self.debugmsg(8, "parser:", parser)
+			priority, parsername = parser.split(":")
+			retvalue = eval(parsername +"()")
+			self.debugmsg(8, "retvalue:", retvalue)
 			if retvalue is not None:
 				return retvalue
 
@@ -423,9 +446,12 @@ class har2rfreq():
 			self.outdata["*** Keywords ***"][kwname].append(line)
 
 
-		for processor in self.processors.keys():
+		processorlist = list(self.processors.keys())
+		processorlist.sort()
+		for processor in processorlist:
 			self.debugmsg(8, "processor:", processor)
-			entry = eval(processor +"(entry)")
+			priority, processorname = processor.split(":")
+			entry = eval(processorname +"(entry)")
 
 		self.debugmsg(9, entry)
 
@@ -557,6 +583,7 @@ class har2rfreq():
 		if tcname not in self.outdata["*** Test Cases ***"]:
 			self.outdata["*** Test Cases ***"][tcname] = []
 			self.workingdata["testcase"] = tcname
+			self.debugmsg(3, "New test case:", tcname)
 
 	def add_keyword(self, kwname, comment):
 
@@ -575,11 +602,9 @@ class har2rfreq():
 
 			self.outdata["*** Keywords ***"][kwname].append("[Documentation] 	" + tcname + "	|	" + kwname + "	|	" + comment)
 			self.outdata["*** Test Cases ***"][tcname].append(kwname)
+			self.debugmsg(3, "New keyword:", kwname)
 
 	def add_session(self):
-
-
-
 		tcname = self.workingdata["testcase"]
 		url = self.workingdata["har"]["log"]["entries"][0]["request"]["url"]
 		self.debugmsg(9, "url", url)
@@ -662,7 +687,7 @@ class har2rfreq():
 
 
 				j += 1
-				# if j>15:
+				# if j>5:
 				# 	break
 
 			i += 1

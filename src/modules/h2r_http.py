@@ -18,30 +18,30 @@ class h2r_http():
 		#
 		# Register Paersers
 		#
-		psr = "self.h2r_http.response_headers"
+		psr = "01:self.h2r_http.response_headers"
 		if psr not in self.parent.parsers:
 			self.parent.parsers[psr] = {}
 
-		psr = "self.h2r_http.response_cookies"
+		psr = "01:self.h2r_http.response_cookies"
 		if psr not in self.parent.parsers:
 			self.parent.parsers[psr] = {}
 
 		#
 		# Register processors
 		#
-		pro = "self.h2r_http.request_uripath"
+		pro = "01:self.h2r_http.request_uripath"
 		if pro not in self.parent.processors:
 			self.parent.processors[pro] = {}
 
-		pro = "self.h2r_http.request_headers"
+		pro = "01:self.h2r_http.request_headers"
 		if pro not in self.parent.processors:
 			self.parent.processors[pro] = {}
 
-		pro = "self.h2r_http.request_cookies"
+		pro = "02:self.h2r_http.request_cookies"
 		if pro not in self.parent.processors:
 			self.parent.processors[pro] = {}
 
-		pro = "self.h2r_http.request_statuscode"
+		pro = "02:self.h2r_http.request_statuscode"
 		if pro not in self.parent.processors:
 			self.parent.processors[pro] = {}
 
