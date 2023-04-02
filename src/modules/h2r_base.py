@@ -109,14 +109,17 @@ class h2r_base():
 				i += 1
 				newname = searchkey+"_"+str(i)
 				# self.debugmsg(9, "newname:", newname)
-		self.parent.debugmsg(8, "possiblekeys:", possiblekeys)
+		self.parent.debugmsg(6, "possiblekeys:", possiblekeys)
 
 		for searchval in self.parent.parserdata["searchvals"]:
 			if searchval in self.parent.workingdata["paramvalues"]:
-				self.parent.debugmsg(8, "value key:", self.parent.workingdata["paramvalues"][searchval], " <=> ", possiblekeys)
+				self.parent.debugmsg(6, "value key:", self.parent.workingdata["paramvalues"][searchval], " <=> ", possiblekeys)
 				if self.parent.workingdata["paramvalues"][searchval] in possiblekeys:
 					newvalue = self.parent.workingdata["paramvalues"][searchval]
 					return newvalue
+				if len(searchval)>10:
+					newvalue = self.parent.workingdata["paramvalues"][searchval]
+					return newvalue					
 		return None
 
 

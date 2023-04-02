@@ -135,18 +135,20 @@ class h2r_html():
 					resp = e["entrycount"]
 					ekwname = e["kwname"]
 					estep = self.parent.find_estep(resp, ekwname)
-					self.parent.debugmsg(8, "estep:", estep)
+					self.parent.debugmsg(6, "resp:", resp, "	ekwname:", ekwname, "	estep:", estep)
 
-
+					prefix = ""
+					suffix = ""
 
 					# check body
-					self.parent.debugmsg(6, "is value in response body")
+					self.parent.debugmsg(8, "is value (" + searchval + ") in response body "+ str(e["entrycount"]) )
 					if "text" in e["response"]["content"]:
 						self.parent.debugmsg(8, "response content has text")
 
 						# check body for raw value
 						if searchval in e["response"]["content"]["text"]:
-							self.parent.debugmsg(8, "found searchval (",searchval,") in body for ", e["request"]["url"])
+							self.parent.debugmsg(6, "value (" + searchval + ") is in response body "+ str(e["entrycount"]) )
+							self.parent.debugmsg(6, "found searchval (",searchval,") in body for ", e["request"]["url"])
 
 							start = 0
 							while start >=0:
@@ -166,11 +168,37 @@ class h2r_html():
 
 									for srchkey in searchkeys:
 										if srchkey in excerpt:
-											self.parent.debugmsg(8, "found key (",srchkey,") in excerpt:", "|{}|".format(excerpt))
+											self.parent.debugmsg(6, "found key (",srchkey,") in excerpt:", "|{}|".format(excerpt))
+											self.parent.debugmsg(6, "resp:", resp, "	== e[\"entrycount\"]:", e["entrycount"])
 
+											if len(srchkey) > 1:
+												o = 0
+												body = e["response"]["content"]["text"]
+												# while o < offset:
+												while o < 10:
+													# (.{10}Accept.*?application\/json.{10})
+													resrchkey = re.escape(srchkey).replace("/", "\/")
+													researchval = re.escape(searchval).replace("/", "\/")
+													# ptn =  "(.{" + str(o) + "}" + resrchkey +".*?" + researchval + ".{" + str(o) + "})"
+													ptn =  "(" + resrchkey +".*?)" + researchval + "(.{" + str(o) + "})"
+													# match = re.search(ptn, body)
+													match = re.findall(ptn, body)
+
+													if match is not None:
+														self.parent.debugmsg(5, "ptn:", ptn, " 	found match:", match)
+														# self.parent.debugmsg(5, "match.group(1):", match.group(1))
+														# self.parent.debugmsg(5, "match.group(2):", match.group(2))
+
+													o += 1
+
+
+											# This is non-ideal methods but they mostly work as a last resort
 											kpos = excerpt.find(srchkey)
 											vpos = excerpt.find(searchval, kpos)
 											if vpos > kpos:
+												self.parent.debugmsg(6, "resp:", resp, "	== e[\"entrycount\"]:", e["entrycount"])
+												prefix = ""
+												suffix = ""
 												self.parent.debugmsg(8, "kpos:", kpos, "vpos:", vpos)
 												fullprefix = excerpt[0:vpos].strip()
 												prefixarr = fullprefix.splitlines()
@@ -191,14 +219,24 @@ class h2r_html():
 												# test match with prefix and suffix works as expected?
 												# find prefix from right
 												ml = e["response"]["content"]["text"].rfind(prefix)+len(prefix)
+												# right = e["response"]["content"]["text"][ml:]
 												# find suffix from left
 												mr = e["response"]["content"]["text"].find(suffix, ml)
+												# mr = right.find(suffix)
+
 												# get match
 												match = e["response"]["content"]["text"][ml:mr]
-												# self.parent.debugmsg(9, "ml:", ml, "	mr:", mr, "	match:", match, "	searchval:", searchval)
+												# match = right[0:mr]
+												self.parent.debugmsg(6, "ml:", ml, "	mr:", mr, "	match:", match, "	searchval:", searchval)
 
 												goffset = 1
 												if match == searchval:
+
+													self.parent.debugmsg(6, "-+100:", e["response"]["content"]["text"][ml-100:mr+100])
+													# resp = e["entrycount"]
+													self.parent.debugmsg(6, "resp:", resp, "	== e[\"entrycount\"]:", e["entrycount"])
+
+													self.parent.debugmsg(6, "match:", match, "	== searchval:", searchval)
 
 													line = "${"+newkey+"}= 	Get Substring LRB 	${resp_"+str(resp)+".text} 	"+prefix+" 	"+suffix
 													self.parent.outdata["*** Keywords ***"][ekwname].insert(estep, line)
@@ -228,21 +266,70 @@ class h2r_html():
 													goffset += 1
 
 
-												self.parent.debugmsg(8, "estep:", estep, "	goffset:", goffset)
+												self.parent.debugmsg(6, "resp:", resp, "estep:", estep, "	goffset:", goffset)
 												line = "Set Global Variable 	${"+newkey+"}"
 												self.parent.outdata["*** Keywords ***"][ekwname].insert(estep+goffset, line)
 
 
 
 												newvalue = "${"+newkey+"}"
-												self.parent.debugmsg(8, "newvalue:", newvalue)
+												self.parent.debugmsg(6, "newvalue:", newvalue)
 												return newvalue
+
 
 									start = pos+len(searchval)
 								else:
 									start = pos
 								# else:
 									# self.parent.debugmsg(9, "didn't find key (",key,") in excerpt:", excerpt)
+
+							if len(searchval) > 10:
+								self.parent.debugmsg(6, "found searchval (",searchval,") in excerpt:", "|{}|".format(excerpt))
+
+								# try 1
+								# excerpt = e["response"]["content"]["text"][(pos-len(key)-100):(pos+len(searchval)+100)]
+								body = e["response"]["content"]["text"]
+								altsearchkeys = ["href", "codebase", "src", "cite", "background", "action", "longdesc", "profile", "usemap", "classid", "data", "formaction", "icon", "manifest", "poster", "archive", "lowsrc", "dynsrc"]
+								# https://stackoverflow.com/questions/2725156/complete-list-of-html-tag-attributes-which-have-a-url-value
+
+								for altsearchkey in altsearchkeys:
+									# href=['"]([^'"\?]*)
+									self.parent.debugmsg(6, "altsearchkey:", altsearchkey)
+									ptn = altsearchkey + "=['\"]([^'\"\\?]*)"
+									# match = re.match(ptn, body)
+									# match = re.search(ptn, body)
+									match = re.findall(ptn, body)
+
+									# self.parent.debugmsg(6, "ptn:", ptn, " 	found match:", match)
+									if match is not None:
+										self.parent.debugmsg(5, "ptn:", ptn, " 	found match:", match)
+										# matchurls = list(match.groups())
+										# self.parent.debugmsg(6, "matchurls:", matchurls)
+										i = 1
+										for matchurl in match:
+											if matchurl == searchval:
+												self.parent.debugmsg(5, "i:", i, "	matchurl:", matchurl, " 	searchval:", searchval)
+
+												# reptn = re.escape(ptn)
+												reptn = ptn.replace('\\', '\\\\').replace(r'"', r'\"')
+
+												newkey = self.parent.saveparam(key, searchval)
+												# line = "${"+newkey+"}= 	evaluate 	re.findall(\"" + reptn + "\", \"\"\"${resp_"+str(resp)+".text}\"\"\")[" + str(i) + "] 	re"
+												line = "${"+newkey+"}= 	evaluate 	re.findall(\"\"\"" + ptn + "\"\"\", \"\"\"${resp_"+str(resp)+".text}\"\"\")[" + str(i) + "] 	re"
+
+												self.parent.outdata["*** Keywords ***"][ekwname].insert(estep, line)
+												newvalue = "${"+newkey+"}"
+												self.parent.debugmsg(5, "newvalue:", newvalue)
+												return newvalue
+
+											i += 1
+
+								# try 2
+								# excerptlines = excerpt.splitlines()
+								# for excerptline in excerptlines:
+								# 	if searchval in excerptline:
+								# 		self.parent.debugmsg(6, "found searchval (",searchval,") in excerptline:", "|{}|".format(excerptline))
+
 
 		return None
 
