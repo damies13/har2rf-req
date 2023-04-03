@@ -97,7 +97,8 @@ class h2r_url():
 					self.parent.debugmsg(5, "match.group(1):", match.group(1))
 					if match.group(1) is not None:
 						opath = match.group(1)
-						if "_path" in key:
+
+						if "_path_path" in key:
 							return None
 
 						self.parent.debugmsg(5, "key:", key)
@@ -105,11 +106,34 @@ class h2r_url():
 						# 	path = self.parent.find_variable(key, opath)
 						# else:
 						# 	path = self.parent.find_variable(key + "_path", opath)
-						path = self.parent.find_variable(key + "_path", opath)
+						path = self.parent.find_variable(key + "_path", opath, False)
 						self.parent.debugmsg(5, "path:", path)
+
+						if path is None:
+							return None
 
 						if path != opath:
 							retarr.append(path)
+
+						if  path == opath:
+							patharr = path.split("/")
+							self.parent.debugmsg(5, "path:", path)
+							self.parent.debugmsg(5, "patharr:", patharr)
+
+							if len(patharr) > 2:
+								pathend = "/" + patharr.pop()
+								pathbeg = "/".join(patharr)
+
+								self.parent.debugmsg(5, "pathbeg:", pathbeg, "	pathend:", pathend)
+
+								newpathbeg = self.parent.find_variable(key + "_pathpre", pathbeg, False)
+								newpathend = self.parent.find_variable(key + "_pathsuf", pathend, False)
+								self.parent.debugmsg(5, "pathbeg:", pathbeg, "	pathend:", pathend)
+								self.parent.debugmsg(5, "newpathbeg:", newpathbeg, "	newpathend:", newpathend)
+
+								if newpathbeg != pathbeg or newpathend != pathend:
+									path = newpathbeg + newpathend
+								
 
 					self.parent.debugmsg(5, "match.group(2):", match.group(2))
 					if match.group(2) is not None and len(match.group(2))>1:

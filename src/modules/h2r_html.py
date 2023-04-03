@@ -140,7 +140,7 @@ class h2r_html():
 					resp = e["entrycount"]
 					ekwname = e["kwname"]
 					estep = self.parent.find_estep(resp, ekwname)
-					self.parent.debugmsg(6, "resp:", resp, "	ekwname:", ekwname, "	estep:", estep)
+					self.parent.debugmsg(8, "resp:", resp, "	ekwname:", ekwname, "	estep:", estep)
 
 					prefix = ""
 					suffix = ""
@@ -152,8 +152,8 @@ class h2r_html():
 
 						# check body for raw value
 						if searchval in e["response"]["content"]["text"]:
-							self.parent.debugmsg(6, "value (" + searchval + ") is in response body "+ str(e["entrycount"]) )
-							self.parent.debugmsg(6, "found searchval (",searchval,") in body for ", e["request"]["url"])
+							self.parent.debugmsg(8, "value (" + searchval + ") is in response body "+ str(e["entrycount"]) )
+							self.parent.debugmsg(8, "found searchval (",searchval,") in body for ", e["request"]["url"])
 
 							start = 0
 							while start >=0:

@@ -232,7 +232,7 @@ class har2rfreq():
 		self.debugmsg(9, "ret i:", i, starts)
 		return i
 
-	def find_variable(self, key, value):
+	def find_variable(self, key, value, lastresort=True):
 
 		self.debugmsg(6, "")
 		self.debugmsg(6, "key:", key, "	value:", value)
@@ -318,7 +318,7 @@ class har2rfreq():
 			if retvalue is not None:
 				return retvalue
 
-		if newvalue == value:
+		if newvalue == value and lastresort:
 			self.debugmsg(6, "Last resort if value didn't exist anywhere")
 
 			newkey = self.saveparam(key, value)
