@@ -133,6 +133,7 @@ class h2r_url():
 
 								if newpathbeg != pathbeg or newpathend != pathend:
 									path = newpathbeg + newpathend
+									retarr.append(path)
 								
 
 					self.parent.debugmsg(5, "match.group(2):", match.group(2))
