@@ -407,7 +407,7 @@ class har2rfreq():
 		# add extra info to entry
 		entry["kwname"] = kwname
 		self.workingdata["entrycount"] += 1
-		entry["entrycount"] = self.workingdata["entrycount"]
+		entry["entrycount"] = int(self.workingdata["entrycount"])
 
 
 		if "session" not in self.workingdata:

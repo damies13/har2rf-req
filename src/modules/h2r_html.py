@@ -126,6 +126,11 @@ class h2r_html():
 		for searchval in searchvals.keys():
 			self.parent.debugmsg(8, "searchval:", searchval)
 
+			# badmatchs = ["text/", "application/", "image/", "Mozilla/", "AppleWebKit/", "Chrome/", "Safari/", "*/", "/*"]
+			# for badmatch in badmatchs:
+			# 	if badmatch in searchval:
+			# 		return None
+
 			# search history to try and find it
 			if "history" in self.parent.workingdata:
 				# self.parent.debugmsg(9, "Searching History")
@@ -171,25 +176,38 @@ class h2r_html():
 											self.parent.debugmsg(6, "found key (",srchkey,") in excerpt:", "|{}|".format(excerpt))
 											self.parent.debugmsg(6, "resp:", resp, "	== e[\"entrycount\"]:", e["entrycount"])
 
-											if len(srchkey) > 1:
-												o = 0
-												body = e["response"]["content"]["text"]
-												# while o < offset:
-												while o < 10:
-													# (.{10}Accept.*?application\/json.{10})
-													resrchkey = re.escape(srchkey).replace("/", "\/")
-													researchval = re.escape(searchval).replace("/", "\/")
-													# ptn =  "(.{" + str(o) + "}" + resrchkey +".*?" + researchval + ".{" + str(o) + "})"
-													ptn =  "(" + resrchkey +".*?)" + researchval + "(.{" + str(o) + "})"
-													# match = re.search(ptn, body)
-													match = re.findall(ptn, body)
+											# if len(srchkey) > 1:
+											# 	body = e["response"]["content"]["text"]
+											# 	resrchkey = re.escape(srchkey).replace("/", "\/")
+											# 	researchval = re.escape(searchval).replace("/", "\/")
+											# 	ptn =  "(" + resrchkey +")(.{0,10})" + researchval + "(.{0," + str(offset) + "})"
+											# 	matches = re.findall(ptn, body)
+											#
+											# 	if matches is not None:
+											# 		self.parent.debugmsg(5, "ptn:", ptn, " 	found matches:", matches)
+											#
+											# 		for match in matches:
+											#
+											# 			self.parent.debugmsg(5, "match:", match)
+											#
+											# 			ptnout =  "" + resrchkey + match[1] + "(.*?)" + match[2][0:2]
+											# 			matches2 = re.search(ptnout, body)
+											#
+											# 			if matches2 is not None:
+											# 				self.parent.debugmsg(5, "ptnout:", ptnout, " 	found matches2:", matches2)
+											# 				self.parent.debugmsg(5, "matches2.group(0):", matches2.group(0))
+											# 				self.parent.debugmsg(5, "matches2.group(1):", matches2.group(1))
+											# 				# self.parent.debugmsg(5, "matches2.group(2):", matches2.group(2))
+											#
+											# 				newkey = self.parent.saveparam(key, searchval)
+											# 				# line = "${"+newkey+"}= 	evaluate 	re.findall(\"" + reptn + "\", \"\"\"${resp_"+str(resp)+".text}\"\"\")[" + str(i) + "] 	re"
+											# 				line = "${"+newkey+"}= 	evaluate 	re.search(\"\"\"" + ptnout + "\"\"\", \"\"\"${resp_"+str(resp)+".text}\"\"\").group(1) 	re"
+											#
+											# 				self.parent.outdata["*** Keywords ***"][ekwname].insert(estep, line)
+											# 				newvalue = "${"+newkey+"}"
+											# 				self.parent.debugmsg(5, "newvalue:", newvalue)
+											# 				return newvalue
 
-													if match is not None:
-														self.parent.debugmsg(5, "ptn:", ptn, " 	found match:", match)
-														# self.parent.debugmsg(5, "match.group(1):", match.group(1))
-														# self.parent.debugmsg(5, "match.group(2):", match.group(2))
-
-													o += 1
 
 
 											# This is non-ideal methods but they mostly work as a last resort
