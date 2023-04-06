@@ -95,6 +95,8 @@ class h2r_base():
 
 	def exiting_paramval(self):
 		self.parent.debugmsg(6, "has value already been found")
+		kwname = self.parent.parserdata["kwname"]
+		key = self.parent.parserdata["key"]
 
 		possiblekeys = []
 		possiblekeyn = []
@@ -109,14 +111,74 @@ class h2r_base():
 				i += 1
 				newname = searchkey+"_"+str(i)
 				# self.debugmsg(9, "newname:", newname)
-		self.parent.debugmsg(8, "possiblekeys:", possiblekeys)
+		self.parent.debugmsg(6, "possiblekeys:", possiblekeys)
 
 		for searchval in self.parent.parserdata["searchvals"]:
 			if searchval in self.parent.workingdata["paramvalues"]:
-				self.parent.debugmsg(8, "value key:", self.parent.workingdata["paramvalues"][searchval], " <=> ", possiblekeys)
+				self.parent.debugmsg(6, "value key:", self.parent.workingdata["paramvalues"][searchval], " <=> ", possiblekeys)
 				if self.parent.workingdata["paramvalues"][searchval] in possiblekeys:
 					newvalue = self.parent.workingdata["paramvalues"][searchval]
 					return newvalue
+				if len(searchval)>10:
+					newvalue = self.parent.workingdata["paramvalues"][searchval]
+					return newvalue
+
+			for pval in self.parent.workingdata["paramvalues"]:
+				if searchval in pval:
+					self.parent.debugmsg(6, "searchval (", searchval, ") is substring of existing pval (", pval, ")")
+					pvalkey = self.parent.workingdata["paramvalues"][pval]
+					self.parent.debugmsg(6, "pvalkey:", pvalkey)
+
+					pvalkeyname = pvalkey
+					if pvalkey[:2] == "${":
+						pvalkeyname = pvalkey[2:-1]
+
+					lenl = pval.find(searchval)
+					lenr = lenl + len(searchval)
+
+					spre = ""
+					ssfx = ""
+					if lenl > 0:
+						spre = pval[:lenl]
+					if lenr > 0:
+						ssfx = pval[lenr:]
+
+					if len(spre) > 1 and len(ssfx) > 1:
+						# get lrb
+						newkey = self.parent.saveparam(pvalkeyname + "_sub", searchval)
+						# ${NoKey}= 	Get Substring LRB 	${resp_1.text} 	<link rel="icon" href="/web/dist/favicon.ico? 	">
+						line = "${"+newkey+"}= 	Get Substring LRB 	" + pvalkey + " 	"+spre+" 	"+ssfx
+						self.parent.debugmsg(6, "line:", line)
+						self.parent.outdata["*** Keywords ***"][kwname].append(line)
+
+						newvalue = "${"+newkey+"}"
+						self.parent.debugmsg(6, "newvalue:", newvalue)
+						return newvalue
+
+					if len(spre) > 1 and len(ssfx) < 1:
+						# get right
+						newkey = self.parent.saveparam(pvalkeyname + "_sub", searchval)
+						# ${left}= 	Fetch From Right 	${string} 	${LeftB}
+						line = "${"+newkey+"}= 	Fetch From Right 	" + pvalkey + " 	"+spre
+						self.parent.debugmsg(6, "line:", line)
+						self.parent.outdata["*** Keywords ***"][kwname].append(line)
+
+						newvalue = "${"+newkey+"}"
+						self.parent.debugmsg(6, "newvalue:", newvalue)
+						return newvalue
+
+					if len(spre) < 1 and len(ssfx) > 1:
+						# get left
+						newkey = self.parent.saveparam(pvalkeyname + "_sub", searchval)
+						# ${match}= 	Fetch From Left 	${left} 	${RightB}
+						line = "${"+newkey+"}= 	Fetch From Left 	" + pvalkey + " 	"+ssfx
+						self.parent.debugmsg(6, "line:", line)
+						self.parent.outdata["*** Keywords ***"][kwname].append(line)
+
+						newvalue = "${"+newkey+"}"
+						self.parent.debugmsg(6, "newvalue:", newvalue)
+						return newvalue
+
 		return None
 
 

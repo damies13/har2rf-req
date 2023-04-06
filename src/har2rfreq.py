@@ -23,6 +23,7 @@ class har2rfreq():
 	parsers = {}
 	parserdata = {}
 	processors = {}
+	limit = 0
 
 	debuglvl = 0
 
@@ -36,6 +37,7 @@ class har2rfreq():
 							description='A tool for converting har files into robot framework tests using Requests Library',
 							epilog='Version '+self.version)
 		parser.add_argument('-g', '--debug', help='Set debug level, default level is 0')
+		parser.add_argument('-l', '--limit', help='limit the number of requests to process, default level is 0 (unlimited)')
 		parser.add_argument('-v', '--version', help='Display the version and exit', action='store_true')
 		parser.add_argument('path', help='Path to har file or folder of har files')
 		self.args = parser.parse_args()
@@ -48,6 +50,10 @@ class har2rfreq():
 
 		if self.args.version:
 			exit()
+
+		if self.args.limit:
+			self.limit = int(self.args.limit)
+
 
 		self.debugmsg(9, "Run init_modules")
 		self.init_modules()
@@ -226,7 +232,7 @@ class har2rfreq():
 		self.debugmsg(9, "ret i:", i, starts)
 		return i
 
-	def find_variable(self, key, value):
+	def find_variable(self, key, value, lastresort=True):
 
 		self.debugmsg(6, "")
 		self.debugmsg(6, "key:", key, "	value:", value)
@@ -312,7 +318,7 @@ class har2rfreq():
 			if retvalue is not None:
 				return retvalue
 
-		if newvalue == value:
+		if newvalue == value and lastresort:
 			self.debugmsg(6, "Last resort if value didn't exist anywhere")
 
 			newkey = self.saveparam(key, value)
@@ -401,7 +407,7 @@ class har2rfreq():
 		# add extra info to entry
 		entry["kwname"] = kwname
 		self.workingdata["entrycount"] += 1
-		entry["entrycount"] = self.workingdata["entrycount"]
+		entry["entrycount"] = int(self.workingdata["entrycount"])
 
 
 		if "session" not in self.workingdata:
@@ -464,8 +470,15 @@ class har2rfreq():
 		path = "/todo"
 		if "path" in entry["processor"]:
 			path = entry["processor"]["path"]
+			self.debugmsg(6, "path:", path)
 
+			if len(path) > 1:
+				newpath = self.find_variable("path", path)
+				if newpath is not None and len(newpath) > 1 and newpath != path:
+					self.debugmsg(6, "newpath:", newpath)
+					path = newpath
 
+		self.debugmsg(6, "path:", path)
 		action = entry["request"]["method"]
 		resp = "resp_{}".format(entry["entrycount"])
 		line = "${"+resp+"}= 	" + action + " On Session 	" + self.workingdata["session"] + " 	url=" + path + argdata
@@ -687,8 +700,8 @@ class har2rfreq():
 
 
 				j += 1
-				# if j>5:
-				# 	break
+				if self.limit>0 and j>self.limit:
+					break
 
 			i += 1
 

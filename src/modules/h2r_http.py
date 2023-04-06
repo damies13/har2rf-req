@@ -98,6 +98,58 @@ class h2r_http():
 							newvalue = "${"+newkey+"}"
 							return newvalue
 
+						if h["value"] == searchval and len(searchval) > 10 :
+							hkey = h["name"]
+							self.parent.debugmsg(8, "found searchval (",searchval,") as hkey (",hkey,") for key (",key,") in header for ", e["request"]["url"])
+
+							newkey = self.parent.saveparam(key, searchval)
+
+							line = "Set Global Variable 	${"+newkey+"}	${resp_"+str(resp + estep)+".headers[\""+hkey+"\"]}"
+							self.parent.outdata["*** Keywords ***"][ekwname].append(line)
+
+							newvalue = "${"+newkey+"}"
+							return newvalue
+
+						if len(searchval) > 10 and searchval in h["value"]:
+							hkey = h["name"]
+							self.parent.debugmsg(8, "found searchval (",searchval,") as hkey (",hkey,") for key (",key,") in header for ", e["request"]["url"])
+							hvalue = h["value"]
+							newkey = self.parent.saveparam(hkey, hvalue)
+
+
+							# Set Global Variable 	${Location}	${resp_0.headers["Location"]}
+							line = "Set Global Variable 	${"+newkey+"}	${resp_"+str(resp + estep)+".headers[\""+hkey+"\"]}"
+
+							self.parent.debugmsg(8, "line:", line)
+							self.parent.debugmsg(8, "ekwname:", ekwname, "	estep:", estep)
+
+							self.parent.debugmsg(9, "ekwname[]:", self.parent.outdata["*** Keywords ***"][ekwname])
+							self.parent.outdata["*** Keywords ***"][ekwname].append(line)
+
+							self.parent.debugmsg(8, "hvalue:", hvalue, "	searchval:", searchval)
+
+							newkey0 = newkey
+							newkey = self.parent.saveparam(key, searchval)
+
+							# kpos = excerpt.find(srchkey)
+							# vpos = excerpt.find(searchval, kpos)
+
+							vpos = hvalue.find(searchval)
+							self.parent.debugmsg(8, "vpos:", vpos, "	len(searchval):", len(searchval), "	len(hvalue):", len(hvalue))
+
+							elen = len(hvalue) - (vpos + len(searchval))
+							if elen > 0:
+								line = "${"+newkey+"}= 	Get Substring 	${" + newkey0 + "} 	" + str(vpos) + " 	-" + str(elen)
+								self.parent.outdata["*** Keywords ***"][ekwname].append(line)
+							else:
+								line = "${"+newkey+"}= 	Get Substring 	${" + newkey0 + "} 	" + str(vpos)
+								self.parent.outdata["*** Keywords ***"][ekwname].append(line)
+
+
+							newvalue = "${"+newkey+"}"
+							return newvalue
+
+
 						if searchval in h["value"]:
 							lbound, rbound = self.parent.find_in_string(key, searchval, h["value"])
 							self.parent.debugmsg(8, "lbound:", lbound, "	rbound:", rbound)
