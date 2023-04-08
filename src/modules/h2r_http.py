@@ -325,7 +325,7 @@ class h2r_http():
 
 		argdata = ""
 		statuscode = entry["response"]["status"]
-		if statuscode == 302:
+		if statuscode in [301, 302, 307, 308]:
 			argdata += " 	" + "expected_status={}".format(statuscode)
 			argdata += " 	" + "allow_redirects=${False}"
 			# if "redirecturl" not in self.workingdata:
