@@ -323,7 +323,7 @@ class h2r_html():
 										self.parent.debugmsg(5, "ptn:", ptn, " 	found match:", match)
 										# matchurls = list(match.groups())
 										# self.parent.debugmsg(6, "matchurls:", matchurls)
-										i = 1
+										i = 0 # needs to be 0 because of re.findall not re.search (if re.search should be 1)
 										for matchurl in match:
 											if matchurl == searchval:
 												self.parent.debugmsg(5, "i:", i, "	matchurl:", matchurl, " 	searchval:", searchval)
@@ -335,6 +335,7 @@ class h2r_html():
 												# line = "${"+newkey+"}= 	evaluate 	re.findall(\"" + reptn + "\", \"\"\"${resp_"+str(resp)+".text}\"\"\")[" + str(i) + "] 	re"
 												line = "${"+newkey+"}= 	evaluate 	re.findall(\"\"\"" + ptn + "\"\"\", \"\"\"${resp_"+str(resp)+".text}\"\"\")[" + str(i) + "] 	re"
 
+												self.parent.debugmsg(5, "line:", line)
 												self.parent.outdata["*** Keywords ***"][ekwname].insert(estep, line)
 												newvalue = "${"+newkey+"}"
 												self.parent.debugmsg(5, "newvalue:", newvalue)

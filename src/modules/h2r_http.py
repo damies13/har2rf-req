@@ -66,9 +66,13 @@ class h2r_http():
 		self.parent.debugmsg(6, "headers Parser")
 
 		searchkeys = self.parent.parserdata["searchkeys"]
+		self.parent.debugmsg(7, "searchkeys:", self.parent.parserdata["searchkeys"])
 		searchvals = self.parent.parserdata["searchvals"]
+		self.parent.debugmsg(7, "searchvals:", self.parent.parserdata["searchvals"])
 		kwname = self.parent.parserdata["kwname"]
+		self.parent.debugmsg(6, "kwname:", self.parent.parserdata["kwname"])
 		key = self.parent.parserdata["key"]
+		self.parent.debugmsg(6, "key:", self.parent.parserdata["key"])
 
 		for searchval in searchvals.keys():
 			self.parent.debugmsg(8, "searchval:", searchval)
@@ -79,8 +83,13 @@ class h2r_http():
 				for e in self.parent.workingdata["history"]:
 
 					resp = e["entrycount"]+1
+					self.parent.debugmsg(6, "resp:", resp, "	entrycount:", e["entrycount"])
 					ekwname = e["kwname"]
+					self.parent.debugmsg(6, "ekwname:", ekwname)
 					estep = self.parent.find_estep(resp, ekwname)
+					self.parent.debugmsg(6, "estep:", estep)
+
+					resp = e["entrycount"]
 
 					# check headers
 					self.parent.debugmsg(7, "is searchval in headers:", searchval)
@@ -104,29 +113,31 @@ class h2r_http():
 
 							newkey = self.parent.saveparam(key, searchval)
 
-							line = "Set Global Variable 	${"+newkey+"}	${resp_"+str(resp + estep)+".headers[\""+hkey+"\"]}"
-							self.parent.outdata["*** Keywords ***"][ekwname].append(line)
+							line = "Set Global Variable 	${"+newkey+"}	${resp_"+str(resp)+".headers[\""+hkey+"\"]}"
+							# self.parent.outdata["*** Keywords ***"][ekwname].append(line)
+							self.parent.outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
 							newvalue = "${"+newkey+"}"
 							return newvalue
 
 						if len(searchval) > 10 and searchval in h["value"]:
 							hkey = h["name"]
-							self.parent.debugmsg(8, "found searchval (",searchval,") as hkey (",hkey,") for key (",key,") in header for ", e["request"]["url"])
+							self.parent.debugmsg(6, "found searchval (",searchval,") as hkey (",hkey,") for key (",key,") in header for ", e["request"]["url"])
 							hvalue = h["value"]
 							newkey = self.parent.saveparam(hkey, hvalue)
 
 
 							# Set Global Variable 	${Location}	${resp_0.headers["Location"]}
-							line = "Set Global Variable 	${"+newkey+"}	${resp_"+str(resp + estep)+".headers[\""+hkey+"\"]}"
+							line = "Set Global Variable 	${"+newkey+"}	${resp_"+str(resp)+".headers[\""+hkey+"\"]}"
 
-							self.parent.debugmsg(8, "line:", line)
-							self.parent.debugmsg(8, "ekwname:", ekwname, "	estep:", estep)
+							self.parent.debugmsg(6, "line:", line)
+							self.parent.debugmsg(6, "ekwname:", ekwname, "	estep:", estep)
 
 							self.parent.debugmsg(9, "ekwname[]:", self.parent.outdata["*** Keywords ***"][ekwname])
-							self.parent.outdata["*** Keywords ***"][ekwname].append(line)
+							# self.parent.outdata["*** Keywords ***"][ekwname].append(line)
+							self.parent.outdata["*** Keywords ***"][ekwname].insert(estep, line)
 
-							self.parent.debugmsg(8, "hvalue:", hvalue, "	searchval:", searchval)
+							self.parent.debugmsg(6, "hvalue:", hvalue, "	searchval:", searchval)
 
 							newkey0 = newkey
 							newkey = self.parent.saveparam(key, searchval)
@@ -141,9 +152,11 @@ class h2r_http():
 							if elen > 0:
 								line = "${"+newkey+"}= 	Get Substring 	${" + newkey0 + "} 	" + str(vpos) + " 	-" + str(elen)
 								self.parent.outdata["*** Keywords ***"][ekwname].append(line)
+								# self.parent.outdata["*** Keywords ***"][ekwname].insert(estep + 1, line)
 							else:
 								line = "${"+newkey+"}= 	Get Substring 	${" + newkey0 + "} 	" + str(vpos)
 								self.parent.outdata["*** Keywords ***"][ekwname].append(line)
+								# self.parent.outdata["*** Keywords ***"][ekwname].insert(estep + 1, line)
 
 
 							newvalue = "${"+newkey+"}"
@@ -277,7 +290,7 @@ class h2r_http():
 		return entry
 
 	def request_headers(self, entry):
-		self.parent.debugmsg(6, "headers processor")
+		self.parent.debugmsg(6, "headers processor, kwname:", entry["kwname"])
 		self.parent.debugmsg(9, "entry:", entry)
 
 		self.parent.debugmsg(8, "sessiondata:", self.parent.workingdata["sessiondata"])
@@ -310,7 +323,7 @@ class h2r_http():
 
 
 	def request_cookies(self, entry):
-		self.parent.debugmsg(6, "headers cookies")
+		self.parent.debugmsg(6, "headers cookies, kwname:", entry["kwname"])
 		self.parent.debugmsg(9, "entry:", entry)
 
 		# The original code didn't have do anthing to handle cookies beyond the original session
