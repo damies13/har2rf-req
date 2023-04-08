@@ -22,11 +22,15 @@ class h2r_base():
 		# Register Paersers
 		#
 
-		ep = "00:self.h2r_base.exiting_paramkey"
+		ep = "00:self.h2r_base.existing_paramkey"
 		if ep not in self.parent.parsers:
 			self.parent.parsers[ep] = {}
 
-		ep = "01:self.h2r_base.exiting_paramval"
+		ep = "01:self.h2r_base.existing_paramval"
+		if ep not in self.parent.parsers:
+			self.parent.parsers[ep] = {}
+
+		ep = "03:self.h2r_base.existing_paramsubval"
 		if ep not in self.parent.parsers:
 			self.parent.parsers[ep] = {}
 
@@ -57,7 +61,7 @@ class h2r_base():
 	# Paersers
 	#
 
-	def exiting_paramkey(self):
+	def existing_paramkey(self):
 		self.parent.debugmsg(6, "has key already been found")
 
 		searchvals = self.parent.parserdata["searchvals"]
@@ -93,7 +97,7 @@ class h2r_base():
 
 
 
-	def exiting_paramval(self):
+	def existing_paramval(self):
 		self.parent.debugmsg(6, "has value already been found")
 		kwname = self.parent.parserdata["kwname"]
 		key = self.parent.parserdata["key"]
@@ -123,11 +127,34 @@ class h2r_base():
 					newvalue = self.parent.workingdata["paramvalues"][searchval]
 					return newvalue
 
+		return None
+
+	def existing_paramsubval(self):
+		self.parent.debugmsg(6, "has value already been found")
+		kwname = self.parent.parserdata["kwname"]
+		key = self.parent.parserdata["key"]
+
+		possiblekeys = []
+		possiblekeyn = []
+		for searchkey in self.parent.parserdata["searchkeys"]:
+			possiblekeys.append("${"+searchkey+"}")
+			possiblekeyn.append(searchkey)
+			i = 1
+			newname = searchkey+"_"+str(i)
+			while newname in self.parent.workingdata["paramnames"]:
+				possiblekeys.append("${"+newname+"}")
+				possiblekeyn.append(newname)
+				i += 1
+				newname = searchkey+"_"+str(i)
+				# self.debugmsg(9, "newname:", newname)
+		self.parent.debugmsg(6, "possiblekeys:", possiblekeys)
+
+		for searchval in self.parent.parserdata["searchvals"]:
+
 			for pval in self.parent.workingdata["paramvalues"]:
 				if searchval in pval:
-					self.parent.debugmsg(6, "searchval (", searchval, ") is substring of existing pval (", pval, ")")
 					pvalkey = self.parent.workingdata["paramvalues"][pval]
-					self.parent.debugmsg(6, "pvalkey:", pvalkey)
+					self.parent.debugmsg(6, "searchval (", searchval, ") is substring of existing pval (", pval, ") pvalkey:", pvalkey)
 
 					pvalkeyname = pvalkey
 					if pvalkey[:2] == "${":
