@@ -546,7 +546,7 @@ class har2rfreq():
 				newvalue = self.find_variable(skey, str(svalue))
 
 			if isinstance(svalue, list):
-				newvalue, paramlst = process_list(skey, svalue)
+				newvalue, paramlst = self.process_list(skey, svalue)
 				dictconstr.extend(paramlst)
 
 			if isinstance(svalue, dict):
