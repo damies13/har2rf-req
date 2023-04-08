@@ -514,7 +514,7 @@ class har2rfreq():
 
 			if isinstance(value, list):
 				dkeyname = keyname + "_" + dkey
-				newvalue, paramlst = process_list(dkeyname, value)
+				newvalue, paramlst = self.process_list(dkeyname, value)
 				dictconstr.extend(paramlst)
 
 			if isinstance(value, dict):
