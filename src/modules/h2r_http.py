@@ -83,7 +83,7 @@ class h2r_http():
 					estep = self.parent.find_estep(resp, ekwname)
 
 					# check headers
-					self.parent.debugmsg(6, "is searchval in headers:", searchval)
+					self.parent.debugmsg(7, "is searchval in headers:", searchval)
 					for h in e["response"]["headers"]:
 						if h["value"] == searchval and h["name"] in searchkeys:
 							hkey = h["name"]
@@ -209,7 +209,7 @@ class h2r_http():
 
 
 					# check Cookies
-					self.parent.debugmsg(6, "is searchval in cookies:", searchval)
+					self.parent.debugmsg(7, "is searchval in cookies:", searchval)
 					for c in e["response"]["cookies"]:
 						if c["value"] == searchval and c["name"] in searchkeys:
 							ckey = c["name"]
@@ -325,7 +325,7 @@ class h2r_http():
 
 		argdata = ""
 		statuscode = entry["response"]["status"]
-		if statuscode == 302:
+		if statuscode in [301, 302, 307, 308]:
 			argdata += " 	" + "expected_status={}".format(statuscode)
 			argdata += " 	" + "allow_redirects=${False}"
 			# if "redirecturl" not in self.workingdata:
