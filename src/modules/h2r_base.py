@@ -123,7 +123,7 @@ class h2r_base():
 				if self.parent.workingdata["paramvalues"][searchval] in possiblekeys:
 					newvalue = self.parent.workingdata["paramvalues"][searchval]
 					return newvalue
-				if len(searchval)>10:
+				if len(searchval)>2:
 					newvalue = self.parent.workingdata["paramvalues"][searchval]
 					return newvalue
 

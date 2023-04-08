@@ -237,7 +237,7 @@ class har2rfreq():
 	def find_variable(self, key, value, lastresort=True):
 
 		self.debugmsg(6, "")
-		self.debugmsg(6, "key:", key, "	value:", value)
+		self.debugmsg(5, "	key:", key, "	value:", value)
 
 		# reset parserdata
 		self.parserdata = {}
