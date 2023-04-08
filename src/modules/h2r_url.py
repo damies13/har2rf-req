@@ -112,6 +112,13 @@ class h2r_url():
 						if path is None:
 							return None
 
+						if path == opath and path[0] == '/':
+							subopath = opath[1:]
+							subpath = self.parent.find_variable(key + "_path", subopath, False)
+							self.parent.debugmsg(7, "subpath:", subpath)
+							if subpath != subopath:
+								path = '/' + subpath
+
 						if path != opath:
 							retarr.append(path)
 
