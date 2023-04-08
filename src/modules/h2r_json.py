@@ -33,7 +33,7 @@ class h2r_json():
 			pd_try = True
 			pd = entry["request"]["postData"]
 
-			if pd_try and "text" in pd and pd["text"][0] == "{":
+			if pd_try and "text" in pd and len(pd["text"]) > 1 and pd["text"][0] == "{":
 				pd_try = False
 				jsondata = json.loads(pd["text"])
 				dname = "json_{}".format(entry["entrycount"])
