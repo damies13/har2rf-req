@@ -132,7 +132,8 @@ class har2rfreq():
 				dir = sorted(os.listdir(self.pathin))
 				# self.debugmsg(9, "dir:", dir)
 				for item in dir:
-					self.debugmsg(9, "item:", item, ".har ==", os.path.splitext(item)[1].lower())
+					# self.debugmsg(9, "item:", item, ".har ==", os.path.splitext(item)[1].lower())
+					self.debugmsg(0, "item:", item + ".har")
 					if os.path.splitext(item)[1].lower() == ".har":
 						harpath = os.path.join(self.pathin, item)
 						self.debugmsg(9, "harpath:", harpath)
@@ -141,6 +142,7 @@ class har2rfreq():
 			else:
 				# tc = os.path.split(os.path.dirname(pathin))[-1]
 				harfilename = os.path.basename(self.pathin)
+				self.debugmsg(0, "harfilename:", harfilename)
 				tc = os.path.splitext(harfilename)[0]
 
 
@@ -514,7 +516,7 @@ class har2rfreq():
 
 			if isinstance(value, list):
 				dkeyname = keyname + "_" + dkey
-				newvalue, paramlst = process_list(dkeyname, value)
+				newvalue, paramlst = self.process_list(dkeyname, value)
 				dictconstr.extend(paramlst)
 
 			if isinstance(value, dict):
@@ -546,7 +548,7 @@ class har2rfreq():
 				newvalue = self.find_variable(skey, str(svalue))
 
 			if isinstance(svalue, list):
-				newvalue, paramlst = process_list(skey, svalue)
+				newvalue, paramlst = self.process_list(skey, svalue)
 				dictconstr.extend(paramlst)
 
 			if isinstance(svalue, dict):
@@ -662,6 +664,7 @@ class har2rfreq():
 		i = 0
 		j = 0
 		for page in sortedpages:
+			self.debugmsg(1, "page", i, "of", len(sortedpages))
 			# pagetime = int(iso2sec(page["startedDateTime"]))
 			# if i+1 == len(sortedpages):
 				# nextpagetime = int(datetime.timestamp(datetime.now()))
@@ -683,17 +686,18 @@ class har2rfreq():
 			self.add_keyword(kwname, page["title"])
 
 			for e in sortedentries:
+				self.debugmsg(1, "entry", j, "of", len(sortedentries), "URL: ", e["request"]["method"], "	", e["request"]["url"])
+				# self.debugmsg(1, e)
 				# self.debugmsg(9, e)
 				self.debugmsg(7, "")
 				self.debugmsg(7, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j)
 				self.debugmsg(7, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j)
 				self.debugmsg(7, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j, "j:", j)
 				self.debugmsg(7, "")
-				self.debugmsg(7, "e URL:", e["request"]["method"], e["request"]["url"])
 
 				# etime = int(iso2sec(e["startedDateTime"]))
 				etime = self.iso2sec(e["startedDateTime"])
-				self.debugmsg(9, "e time:", etime)
+				self.debugmsg(9, "entry time:", etime)
 				if etime >= pagetime and etime < nextpagetime:
 					# self.debugmsg(9, "etime:", etime)
 					self.process_entry(e)
