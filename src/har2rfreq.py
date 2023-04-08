@@ -565,15 +565,14 @@ class har2rfreq():
 
 	def saveparam(self, name, value):
 		#
-
-
 		newname = name
+		self.debugmsg(9, "newname:", newname)
 		if name in self.workingdata["paramnames"]:
 			i = 0
 			while newname in self.workingdata["paramnames"]:
 				self.debugmsg(9, "newname:", newname)
 				i += 1
-				newname = name + "_{}".format(i)
+				newname = "{}_{}".format(name, i)
 
 			self.debugmsg(9, "newname:", newname)
 
@@ -591,7 +590,7 @@ class har2rfreq():
 		if value not in self.workingdata["paramvalues"]:
 			self.workingdata["paramvalues"][value] = "${"+newname+"}"
 
-		self.debugmsg(9, "saved", "${"+newname+"}", "=", value)
+		self.debugmsg(5, "saved", "${"+newname+"}", "=", value)
 		return newname
 
 	def add_test_case(self, tcname):
