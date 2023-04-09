@@ -114,6 +114,18 @@ class h2r_url():
 
 						if path != opath:
 							retarr.append(path)
+							self.parent.debugmsg(5, "path:", path)
+							# return path
+
+						if path == opath and path[0] == '/':
+							subopath = opath[1:]
+							subpath = self.parent.find_variable(key + "_path", subopath, False)
+							self.parent.debugmsg(7, "subpath:", subpath)
+							if subpath != subopath:
+								path = '/' + subpath
+								self.parent.debugmsg(5, "path:", path)
+								retarr.append(path)
+								# return path
 
 						if  path == opath:
 							patharr = path.split("/")
@@ -135,6 +147,7 @@ class h2r_url():
 								if newpathbeg != pathbeg or newpathend != pathend:
 									path = newpathbeg + newpathend
 									retarr.append(path)
+									# return path
 
 							# try to find match for end of the path
 							patharr = path.split("/")
@@ -168,6 +181,7 @@ class h2r_url():
 								if newpathbeg != pathbeg or newpathend != pathend:
 									path = newpathbeg + newpathend
 									retarr.append(path)
+									# return path
 
 					self.parent.debugmsg(8, "match.group(2):", match.group(2))
 					if match.group(2) is not None and len(match.group(2))>1:
