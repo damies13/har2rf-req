@@ -118,6 +118,10 @@ class h2r_html():
 	def html_body(self):
 		self.parent.debugmsg(6, "html body Parser")
 
+		if "searchkeys" not in self.parent.parserdata:
+			raise Exception("searchkeys missing")
+
+
 		searchkeys = self.parent.parserdata["searchkeys"]
 		searchvals = self.parent.parserdata["searchvals"]
 		kwname = self.parent.parserdata["kwname"]

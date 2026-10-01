@@ -251,7 +251,10 @@ class har2rfreq():
 		self.parserdata["ekwname"] = None
 
 		if len(value.strip())<1:
-			return "${EMPTY}"
+			newvalue = "${EMPTY}"
+			self.debugmsg(5, "newvalue:", newvalue)
+			return newvalue
+
 
 		newvalue = value
 
@@ -299,7 +302,7 @@ class har2rfreq():
 			searchkeys.append(key[1:])
 
 
-		self.debugmsg(8, "searchvals:", searchvals)
+		self.debugmsg(5, "searchvals:", searchvals)
 		self.debugmsg(8, "searchkeys:", searchkeys)
 
 		self.parserdata["searchvals"] = searchvals
@@ -314,6 +317,7 @@ class har2rfreq():
 		parserlist.sort()
 		for parser in parserlist:
 			self.debugmsg(5, "parser:", parser)
+			# self.debugmsg(6, "self.workingdata['searchvals']:", self.workingdata["searchvals"])
 			priority, parsername = parser.split(":")
 			retvalue = eval(parsername +"()")
 			self.debugmsg(8, "retvalue:", retvalue)

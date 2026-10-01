@@ -83,12 +83,13 @@ class h2r_http():
 				for e in self.parent.workingdata["history"]:
 
 					resp = e["entrycount"]+1
-					self.parent.debugmsg(6, "resp:", resp, "	entrycount:", e["entrycount"])
+					self.parent.debugmsg(8, "resp:", resp, "	entrycount:", e["entrycount"])
 					ekwname = e["kwname"]
-					self.parent.debugmsg(6, "ekwname:", ekwname)
+					self.parent.debugmsg(8, "ekwname:", ekwname)
 					estep = self.parent.find_estep(resp, ekwname)
-					self.parent.debugmsg(6, "estep:", estep)
+					self.parent.debugmsg(8, "estep:", estep)
 
+					self.parent.debugmsg(6, "resp:", resp, "	entrycount:", e["entrycount"], "	ekwname:", ekwname, "	estep:", estep)
 					resp = e["entrycount"]
 
 					# check headers
@@ -135,7 +136,8 @@ class h2r_http():
 
 							self.parent.debugmsg(9, "ekwname[]:", self.parent.outdata["*** Keywords ***"][ekwname])
 							# self.parent.outdata["*** Keywords ***"][ekwname].append(line)
-							self.parent.outdata["*** Keywords ***"][ekwname].insert(estep, line)
+							# self.parent.outdata["*** Keywords ***"][ekwname].insert(estep, line)
+							self.parent.outdata["*** Keywords ***"][ekwname].append(line)
 
 							self.parent.debugmsg(6, "hvalue:", hvalue, "	searchval:", searchval)
 

@@ -1,6 +1,7 @@
 # base Module - sudo Parsers, Endcoders and Decoders
 
 from datetime import datetime
+import time
 import dateutil.parser
 
 class h2r_base():
@@ -42,8 +43,17 @@ class h2r_base():
 		if bp not in self.parent.parsers:
 			self.parent.parsers[bp] = {}
 
+		bp = "03:self.h2r_base.delimiter_space"
+		if bp not in self.parent.parsers:
+			self.parent.parsers[bp] = {}
 
+		bp = "03:self.h2r_base.delimiter_comma"
+		if bp not in self.parent.parsers:
+			self.parent.parsers[bp] = {}
 
+		bp = "03:self.h2r_base.delimiter_colon"
+		if bp not in self.parent.parsers:
+			self.parent.parsers[bp] = {}
 
 	#
 	# Encoders
@@ -136,6 +146,9 @@ class h2r_base():
 
 		possiblekeys = []
 		possiblekeyn = []
+		if "searchkeys" not in self.parent.parserdata:
+			raise Exception("searchkeys missing")
+
 		for searchkey in self.parent.parserdata["searchkeys"]:
 			possiblekeys.append("${"+searchkey+"}")
 			possiblekeyn.append(searchkey)
@@ -148,6 +161,9 @@ class h2r_base():
 				newname = searchkey+"_"+str(i)
 				# self.debugmsg(9, "newname:", newname)
 		self.parent.debugmsg(6, "possiblekeys:", possiblekeys)
+
+		if "searchvals" not in self.parent.parserdata:
+			raise Exception("searchvals missing")
 
 		for searchval in self.parent.parserdata["searchvals"]:
 
@@ -288,11 +304,55 @@ class h2r_base():
 
 		return None
 
+	def delimiter_space(self):
+		return self._delimiter_parser(" ")
 
+	def delimiter_comma(self):
+		return self._delimiter_parser(",")
 
+	def delimiter_colon(self):
+		return self._delimiter_parser(":")
 
+	def _delimiter_parser(self, delimiter):
+		self.parent.debugmsg(6, "Is value delimitered by: \"" + delimiter + "\"")
+		kwname = self.parent.parserdata["kwname"]
+		key = self.parent.parserdata["key"]
 
+		if len(self.parent.parserdata["value"].strip()) < 1:
+			return None
 
+		if "searchvals" not in self.parent.parserdata:
+			i = 10
+			while "searchvals" not in self.parent.parserdata and i > 0:
+				self.parent.debugmsg(5, "Waiting for searchvals")
+				self.parent.debugmsg(5, "self.parent.parserdata:", self.parent.parserdata)
+				time.sleep(0.1)
+				i -= 1
+
+			if "searchvals" not in self.parent.parserdata:
+				raise Exception("searchvals missing")
+
+		for searchval in self.parent.parserdata["searchvals"]:
+			if delimiter in searchval:
+				self.parent.debugmsg(8, "searchval:", searchval, "	delimiter:", delimiter)
+				delimarr = searchval.split(delimiter)
+				resarr = []
+				i = 0
+				for delimi in delimarr:
+					self.parent.debugmsg(8, "i:", i, "	delimi:", delimi)
+					i += 1
+					newval = self.parent.find_variable("{}_{}".format(key, i), delimi, False)
+					if newval is not None and newval != delimi:
+						resarr.append(newval)
+					else:
+						resarr.append(delimi)
+				self.parent.debugmsg(6, "delimarr:", delimarr, "	resarr:", resarr)
+				newvalue = delimiter.join(resarr)
+				self.parent.debugmsg(6, "newvalue:", newvalue, "	searchval:", searchval)
+				if newvalue != searchval:
+					return newvalue
+
+		return None
 
 
 
